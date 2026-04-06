@@ -24,15 +24,15 @@ if 'df_sal' not in st.session_state:
     div_data = [["KBANK", 20, 5000.0, 0.0, 0.0, 500.0]] + [["", 0, 0.0, 0.0, 0.0, 0.0] for _ in range(9)]
     st.session_state.df_div = pd.DataFrame(div_data, columns=["ชื่อหลักทรัพย์", "อัตราภาษี(%)", "เงินปันผล", "ไม่ได้รับเครดิต", "ยกเว้นภาษี", "หัก ณ ที่จ่าย"])
 
-# ฟังก์ชันตารางแบบแก้ไขได้ (เหมือน Excel)
+# ฟังก์ชันตารางแบบแก้ไขได้ (เพิ่ม key ให้ไม่ซ้ำกัน)
 config = {"เดือน": st.column_config.TextColumn(disabled=True)}
-with tabs[0]: df_sal = st.data_editor(st.session_state.df_sal, use_container_width=True, hide_index=True, column_config=config)
-with tabs[1]: df_agt = st.data_editor(st.session_state.df_agt, use_container_width=True, hide_index=True, column_config=config)
-with tabs[2]: df_fa  = st.data_editor(st.session_state.df_fa, use_container_width=True, hide_index=True, column_config=config)
-with tabs[3]: df_rent = st.data_editor(st.session_state.df_rent, use_container_width=True, hide_index=True, column_config=config)
+with tabs[0]: df_sal = st.data_editor(st.session_state.df_sal, use_container_width=True, hide_index=True, column_config=config, key="editor_sal")
+with tabs[1]: df_agt = st.data_editor(st.session_state.df_agt, use_container_width=True, hide_index=True, column_config=config, key="editor_agt")
+with tabs[2]: df_fa  = st.data_editor(st.session_state.df_fa, use_container_width=True, hide_index=True, column_config=config, key="editor_fa")
+with tabs[3]: df_rent = st.data_editor(st.session_state.df_rent, use_container_width=True, hide_index=True, column_config=config, key="editor_rent")
 with tabs[4]: 
     st.info("💡 กรอกอัตราภาษีและเงินปันผล ระบบจะคำนวณเครดิตให้ตอนประมวลผลค่ะ")
-    df_div = st.data_editor(st.session_state.df_div, use_container_width=True, hide_index=True)
+    df_div = st.data_editor(st.session_state.df_div, use_container_width=True, hide_index=True, key="editor_div")
 
 # ==========================================
 # 2. โซนกราฟ (Live Chart)
