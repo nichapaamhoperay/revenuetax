@@ -24,15 +24,31 @@ if 'df_sal' not in st.session_state:
     div_data = [["KBANK", 20, 5000.0, 0.0, 0.0, 500.0]] + [["", 0, 0.0, 0.0, 0.0, 0.0] for _ in range(9)]
     st.session_state.df_div = pd.DataFrame(div_data, columns=["ชื่อหลักทรัพย์", "อัตราภาษี(%)", "เงินปันผล", "ไม่ได้รับเครดิต", "ยกเว้นภาษี", "หัก ณ ที่จ่าย"])
 
-# ฟังก์ชันตารางแบบแก้ไขได้ (เพิ่ม key ให้ไม่ซ้ำกัน)
+# ฟังก์ชันตารางแบบแก้ไขได้ (เพิ่ม Total คืนมา)
 config = {"เดือน": st.column_config.TextColumn(disabled=True)}
-with tabs[0]: df_sal = st.data_editor(st.session_state.df_sal, use_container_width=True, hide_index=True, column_config=config, key="editor_sal")
-with tabs[1]: df_agt = st.data_editor(st.session_state.df_agt, use_container_width=True, hide_index=True, column_config=config, key="editor_agt")
-with tabs[2]: df_fa  = st.data_editor(st.session_state.df_fa, use_container_width=True, hide_index=True, column_config=config, key="editor_fa")
-with tabs[3]: df_rent = st.data_editor(st.session_state.df_rent, use_container_width=True, hide_index=True, column_config=config, key="editor_rent")
+
+with tabs[0]: 
+    df_sal = st.data_editor(st.session_state.df_sal, use_container_width=True, hide_index=True, column_config=config, key="editor_sal")
+    st.info(f"**รวมเงินเดือน:** {df_sal['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_sal['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
+
+with tabs[1]: 
+    df_agt = st.data_editor(st.session_state.df_agt, use_container_width=True, hide_index=True, column_config=config, key="editor_agt")
+    st.info(f"**รวมค่าคอมมิชชัน:** {df_agt['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_agt['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
+
+with tabs[2]: 
+    df_fa  = st.data_editor(st.session_state.df_fa, use_container_width=True, hide_index=True, column_config=config, key="editor_fa")
+    st.info(f"**รวมค่าตอบแทน FA:** {df_fa['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_fa['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
+
+with tabs[3]: 
+    df_rent = st.data_editor(st.session_state.df_rent, use_container_width=True, hide_index=True, column_config=config, key="editor_rent")
+    st.info(f"**รวมค่าเช่าบ้าน:** {df_rent['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_rent['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
+
 with tabs[4]: 
-    st.info("💡 กรอกอัตราภาษีและเงินปันผล ระบบจะคำนวณเครดิตให้ตอนประมวลผลค่ะ")
+    st.markdown("💡 *กรอกอัตราภาษีและเงินปันผล ระบบจะคำนวณเครดิตให้ตอนกดประมวลผลค่ะ*")
     df_div = st.data_editor(st.session_state.df_div, use_container_width=True, hide_index=True, key="editor_div")
+    tot_div_amt = pd.to_numeric(df_div["เงินปันผล"], errors='coerce').sum()
+    tot_div_wht = pd.to_numeric(df_div["หัก ณ ที่จ่าย"], errors='coerce').sum()
+    st.info(f"**รวมเงินปันผล:** {tot_div_amt:,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {tot_div_wht:,.2f} บาท")
 
 # ==========================================
 # 2. โซนกราฟ (Live Chart)
@@ -65,6 +81,7 @@ ded_tabs = st.tabs(['1. ครอบครัว', '2. ประกัน/ลง
 with ded_tabs[0]:
     c1, c2 = st.columns(2)
     with c1:
+        w_self = st.number_input("ลดหย่อนผู้มีเงินได้ (60,000 บาท)", value=60000, disabled=True)
         w_spouse = st.checkbox("คู่สมรสไม่มีรายได้ (60,000 บาท)")
         w_child_total = st.number_input("จำนวนบุตรทั้งหมด", min_value=0, value=2)
         w_child_after61 = st.number_input("บุตรที่เกิดปี 2561 เป็นต้นไป", min_value=0, value=2)
@@ -73,6 +90,14 @@ with ded_tabs[0]:
         w_parent = st.number_input("เลี้ยงดูบิดามารดา (คนละ 30k)", min_value=0, max_value=4, value=0)
         w_parent_hlth = st.number_input("เบี้ยประกันสุขภาพบิดามารดา (Max 15k)", min_value=0, value=0, step=1000)
         w_disable = st.number_input("เลี้ยงดูคนพิการ (คนละ 60k)", min_value=0, value=0)
+    
+    # คำนวณ Total แบบ Real-time
+    alw_child = 0
+    if w_child_total > 0:
+        if w_child_total == w_child_after61: alw_child = 30000 + max(0, (w_child_after61 - 1) * 60000)
+        else: alw_child = (max(0, w_child_total - w_child_after61) * 30000) + (w_child_after61 * 60000)
+    t1 = 60000 + (60000 if w_spouse else 0) + alw_child + (min(w_parent, 4) * 30000) + min(w_parent_hlth, 15000) + (w_disable * 60000)
+    st.success(f"**รวมมูลค่าลดหย่อนหมวดครอบครัว:** {t1:,.0f} บาท")
 
 with ded_tabs[1]:
     c1, c2 = st.columns(2)
@@ -87,9 +112,18 @@ with ded_tabs[1]:
         w_pension = st.number_input("ประกันชีวิตแบบบำนาญ", min_value=0, value=0, step=5000)
         st.markdown("**แยกวงเงิน**")
         w_tesg = st.number_input("กองทุน ThaiESG (Max 300k)", min_value=0, value=30000, step=5000)
+    
+    t2_sum = w_life + w_hlth + w_pension + w_pvd + w_rmf + w_tesg + w_soc
+    st.info(f"**ยอดลงทุนรวม (รอคำนวณเพดาน):** {t2_sum:,.0f} บาท")
 
-with ded_tabs[2]: w_home = st.number_input("ดอกเบี้ยบ้าน (Max 100k)", min_value=0, value=100000, step=5000)
-with ded_tabs[3]: w_easy = st.number_input("Easy E-Receipt (Max 50k)", min_value=0, value=0, step=1000)
+with ded_tabs[2]: 
+    w_home = st.number_input("ดอกเบี้ยบ้าน (Max 100k)", min_value=0, value=100000, step=5000)
+    st.info(f"**ดอกเบี้ยบ้าน:** {w_home:,.0f} บาท")
+
+with ded_tabs[3]: 
+    w_easy = st.number_input("Easy E-Receipt (Max 50k)", min_value=0, value=0, step=1000)
+    st.info(f"**ยอด E-Receipt:** {w_easy:,.0f} บาท")
+
 with ded_tabs[4]:
     c1, c2 = st.columns(2)
     with c1:
@@ -97,19 +131,20 @@ with ded_tabs[4]:
         w_don_gen = st.number_input("บริจาคทั่วไป", min_value=0, value=10000, step=1000)
     with c2:
         w_don_pol = st.number_input("บริจาคพรรคการเมือง (Max 10k)", min_value=0, value=0, step=500)
+    
+    t5_sum = w_don_edu + w_don_gen + w_don_pol
+    st.info(f"**ยอดบริจาค (รอคำนวณเพดาน):** {t5_sum:,.0f} บาท")
 
 # ==========================================
 # 4. ประมวลผลภาษี
 # ==========================================
 st.markdown("---")
 if st.button("🧮 ประมวลผลภาษี", type="primary", use_container_width=True):
-    # คำนวณรายได้ & WHT
     inc_1 = df_sal["รายได้"].sum()
     inc_2 = df_agt["รายได้"].sum() + df_fa["รายได้"].sum()
     inc_5 = df_rent["รายได้"].sum()
     wht_base = df_sal["หัก ณ ที่จ่าย"].sum() + df_agt["หัก ณ ที่จ่าย"].sum() + df_fa["หัก ณ ที่จ่าย"].sum() + df_rent["หัก ณ ที่จ่าย"].sum()
     
-    # คำนวณปันผล
     tot_div_a = tot_div_c = tot_div_w = 0
     for _, row in df_div.iterrows():
         rate = pd.to_numeric(row["อัตราภาษี(%)"], errors='coerce')
@@ -125,26 +160,19 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     exp_total = min((inc_1 + inc_2) * 0.5, 100000) + (inc_5 * 0.3)
     inc_after_exp = total_income - exp_total
 
-    # คำนวณลดหย่อน
-    alw_child = 0
-    if w_child_total > 0:
-        if w_child_total == w_child_after61: alw_child = 30000 + max(0, (w_child_after61 - 1) * 60000)
-        else: alw_child = (max(0, w_child_total - w_child_after61) * 30000) + (w_child_after61 * 60000)
-    alw_fam = 60000 + (60000 if w_spouse else 0) + alw_child + (min(w_parent, 4) * 30000) + min(w_parent_hlth, 15000) + (w_disable * 60000)
-    alw_soc = min(w_soc, 9000)
-    alw_base_others = alw_fam + alw_soc + min(w_home, 100000) + min(w_easy, 50000)
-
     # Scenario A (ลงทุน)
     cap_life_hlth_A = min(w_life + min(w_hlth, 25000), 100000)
     cap_retire_A = min(min(w_pension, total_income * 0.15, 200000) + min(w_pvd, total_income * 0.15, 500000) + min(w_rmf, total_income * 0.30, 500000), 500000)
     alw_tesg_A = min(w_tesg, total_income * 0.30, 300000)
-    tot_allowance_A = alw_base_others + cap_life_hlth_A + cap_retire_A + alw_tesg_A
+    alw_soc_capped = min(w_soc, 9000)
+    
+    tot_allowance_A = t1 + alw_soc_capped + min(w_home, 100000) + min(w_easy, 50000) + cap_life_hlth_A + cap_retire_A + alw_tesg_A
     net_pre_don_A = max(0, inc_after_exp - tot_allowance_A - min(w_don_pol, 10000))
     don_A = min(w_don_edu * 2, net_pre_don_A * 0.1) + min(w_don_gen, (net_pre_don_A - min(w_don_edu * 2, net_pre_don_A * 0.1)) * 0.1)
     net_inc_A = net_pre_don_A - don_A
 
     # Scenario B (ไม่ลงทุน)
-    tot_allowance_B = alw_base_others + min(w_pvd, total_income * 0.15, 500000)
+    tot_allowance_B = t1 + alw_soc_capped + min(w_home, 100000) + min(w_easy, 50000) + min(w_pvd, total_income * 0.15, 500000)
     net_pre_don_B = max(0, inc_after_exp - tot_allowance_B - min(w_don_pol, 10000))
     don_B = min(w_don_edu * 2, net_pre_don_B * 0.1) + min(w_don_gen, (net_pre_don_B - min(w_don_edu * 2, net_pre_don_B * 0.1)) * 0.1)
     net_inc_B = net_pre_don_B - don_B
