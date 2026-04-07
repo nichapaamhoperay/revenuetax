@@ -4,6 +4,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 
+# ==========================================
+# 🛠️ คลาสสำหรับแปลงข้อมูล Numpy ไม่ให้ Save พัง
+# ==========================================
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
 # ตั้งค่าหน้าจอแอป
 st.set_page_config(page_title="Smart Tax Planner Pro", layout="wide")
 st.title("📊 Smart Tax Planner Pro")
@@ -18,7 +31,7 @@ tabs = st.tabs([
 ])
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-# เตรียมตารางข้อมูลเริ่มต้น (ถ้าโหลดจากไฟล์ Draft จะใช้ตัวเลขใหม่แทน)
+# เตรียมตารางข้อมูลเริ่มต้น
 if 'df_sal' not in st.session_state:
     st.session_state.df_sal = pd.DataFrame({"เดือน": months, "รายได้": [150000]*12, "หัก ณ ที่จ่าย": [5000]*12})
     st.session_state.df_agt = pd.DataFrame({"เดือน": months, "รายได้": [0]*12, "หัก ณ ที่จ่าย": [0]*12})
@@ -316,7 +329,7 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         if tot_div_amt > 0:
             html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>เงินปันผล 40(4):</b> {tot_div_amt:,.2f} บาท</td><td style='padding: 4px 0; border: none;'></td></tr>")
         
-        # เพิ่มบรรทัดยกเว้นเงินได้สำหรับผู้สูงอายุและคนพิการ (แบบเน้นสีตัวอักษร)
+        # เพิ่มบรรทัดยกเว้นเงินได้สำหรับผู้สูงอายุและคนพิการ
         if self_exempt > 0:
             html_rows.append(f"<tr><td style='padding: 4px 0; border: none; color: #0c5460;'>&#8226; <b>ยกเว้น (65ปี/คนพิการ):</b> {self_exempt:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #0c5460;'>หักออกจากฐานรายได้</td></tr>")
 
@@ -360,10 +373,8 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     # แสดงผลตารางสรุปสุดท้าย
     # ==========================================
     st.markdown("---")
-    
     net_after_exp_label = "= เงินได้หลังหักค่าใช้จ่ายและยกเว้น" if self_exempt > 0 else "= เงินได้หลังหักค่าใช้จ่าย"
     
-    # ต่อ String HTML แบบไร้รอยต่อ ป้องกัน Markdown Parser Error
     summary_html = f"""
     <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 15px; margin-top: 10px; border: 1px solid #dee2e6;">
         <tr style="background-color: #f8f9fa; font-weight: bold;"><td colspan="3" style="padding: 10px;">ตารางสรุปภาษี</td></tr>
@@ -411,50 +422,59 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         <span style="font-size: 15px; color: #212529;">การลงทุนใน RMF, ประกัน และ ThaiESG ช่วยให้คุณประหยัดภาษีไปได้ทั้งหมด <b><span style="color:#28a745;">฿{tax_B - tax_A:,.2f}</span></b></span>
     </div>
     """
-    
     st.markdown(summary_html, unsafe_allow_html=True)
+
 
 # ==========================================
 # 5. โซน จัดการระบบ Save / Load ข้อมูล
 # ==========================================
 with st.sidebar:
     st.header("💾 จัดการข้อมูล (Draft)")
-    st.markdown("สามารถบันทึกข้อมูลที่กรอกไว้เพื่อกลับมาทำต่อได้")
+    st.markdown("บันทึกข้อมูลที่กรอกไว้เพื่อกลับมาทำต่อได้")
     
     st.markdown("---")
     st.subheader("📥 โหลดข้อมูล (Load)")
     uploaded_file = st.file_uploader("อัปโหลดไฟล์ Draft (.json)", type="json")
+    
     if uploaded_file is not None:
         if st.button("🔄 โหลดข้อมูลเข้าสู่ระบบ", use_container_width=True):
-            data = json.load(uploaded_file)
-            
-            # โหลดข้อมูลตาราง
-            for df_key in ['df_sal', 'df_agt', 'df_fa', 'df_rent', 'df_div']:
-                if df_key in data:
-                    st.session_state[df_key] = pd.DataFrame(data[df_key])
-            
-            # โหลดข้อมูลช่องกรอกตัวเลขและ Checkbox
-            keys_to_load = [
-                "inc_6", "wht_6", "inc_7", "wht_7", "inc_8", "wht_8",
-                "inc_inv_1", "wht_inv_1", "inc_inv_2", "wht_inv_2", "inc_inv_3", "wht_inv_3",
-                "inc_inv_4", "wht_inv_4", "inc_inv_5", "wht_inv_5", "inc_inv_6", "wht_inv_6",
-                "inc_inherit", "wht_inherit", "inc_ex_1", "inc_ex_2", "inc_ex_3", "inc_ex_4",
-                "w_is_65", "w_is_disabled_self", "w_spouse", "w_child_total", "w_child_after61", "w_child_adopt",
-                "w_parent", "w_parent_hlth", "w_disable", "w_life", "w_hlth", "w_soc",
-                "w_pvd", "w_rmf", "w_pension", "w_tesg", "w_home", "w_easy",
-                "w_don_edu", "w_don_gen", "w_don_pol"
-            ]
-            for k in keys_to_load:
-                if k in data:
-                    st.session_state[k] = data[k]
-                    
-            st.success("✅ โหลดข้อมูลสำเร็จ!")
-            st.rerun() # รีเฟรชหน้าจอเพื่อแสดงผลข้อมูลใหม่
+            try:
+                data = json.load(uploaded_file)
+                
+                # 🛑 จุดสำคัญ: ต้องเคลียร์ Cache ของตารางเดิมทิ้งก่อน เพื่อไม่ให้มันเอาตัวเลขเก่าไปผสมกับของใหม่!
+                for editor_key in ["editor_sal", "editor_agt", "editor_fa", "editor_rent", "editor_div"]:
+                    if editor_key in st.session_state:
+                        del st.session_state[editor_key]
+                
+                # โหลดข้อมูลกลับเข้าตาราง
+                for df_key in ['df_sal', 'df_agt', 'df_fa', 'df_rent', 'df_div']:
+                    if df_key in data:
+                        st.session_state[df_key] = pd.DataFrame(data[df_key])
+                
+                # โหลดข้อมูลช่องกรอกตัวเลขและ Checkbox อื่นๆ ทั้งหมด
+                keys_to_load = [
+                    "inc_6", "wht_6", "inc_7", "wht_7", "inc_8", "wht_8",
+                    "inc_inv_1", "wht_inv_1", "inc_inv_2", "wht_inv_2", "inc_inv_3", "wht_inv_3",
+                    "inc_inv_4", "wht_inv_4", "inc_inv_5", "wht_inv_5", "inc_inv_6", "wht_inv_6",
+                    "inc_inherit", "wht_inherit", "inc_ex_1", "inc_ex_2", "inc_ex_3", "inc_ex_4",
+                    "w_is_65", "w_is_disabled_self", "w_spouse", "w_child_total", "w_child_after61", "w_child_adopt",
+                    "w_parent", "w_parent_hlth", "w_disable", "w_life", "w_hlth", "w_soc",
+                    "w_pvd", "w_rmf", "w_pension", "w_tesg", "w_home", "w_easy",
+                    "w_don_edu", "w_don_gen", "w_don_pol"
+                ]
+                for k in keys_to_load:
+                    if k in data:
+                        st.session_state[k] = data[k]
+                        
+                st.success("✅ โหลดข้อมูลสำเร็จแล้ว!")
+                st.rerun() # รีเฟรชหน้าให้แสดงผลล่าสุดทันที
+            except Exception as e:
+                st.error("❌ ไฟล์ Draft มีปัญหา กรุณาตรวจสอบไฟล์อีกครั้ง")
 
     st.markdown("---")
     st.subheader("💾 บันทึกข้อมูล (Save)")
     
-    # รวบรวมข้อมูลทั้งหมดที่กรอกล่าสุดเพื่อสร้างไฟล์ Save
+    # รวบรวมข้อมูลทุกช่องที่กรอกไว้มาเตรียม Save
     save_keys = [
         "inc_6", "wht_6", "inc_7", "wht_7", "inc_8", "wht_8",
         "inc_inv_1", "wht_inv_1", "inc_inv_2", "wht_inv_2", "inc_inv_3", "wht_inv_3",
@@ -477,7 +497,8 @@ with st.sidebar:
     for k in save_keys:
         save_data[k] = st.session_state.get(k)
         
-    json_str = json.dumps(save_data, indent=4)
+    # แปลงข้อมูลทั้งหมดเป็น JSON พร้อมใช้ NpEncoder เพื่อป้องกัน Error
+    json_str = json.dumps(save_data, indent=4, cls=NpEncoder)
     
     st.download_button(
         label="⬇️ ดาวน์โหลดไฟล์ Draft (JSON)", 
