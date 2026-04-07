@@ -150,12 +150,14 @@ st.pyplot(fig)
 # ==========================================
 st.markdown("---")
 st.header("3. สิทธิลดหย่อนและบริจาค")
-ded_tabs = st.tabs(['1. ครอบครัว', '2. ประกัน/ลงทุน', '3. ดอกเบี้ยบ้าน', '4. E-Receipt', '5. บริจาค'])
+ded_tabs = st.tabs(['1. ครอบครัว/ส่วนตัว', '2. ประกัน/ลงทุน', '3. ดอกเบี้ยบ้าน', '4. E-Receipt', '5. บริจาค'])
 
 with ded_tabs[0]:
     c1, c2 = st.columns(2)
     with c1:
         w_self = st.number_input("ลดหย่อนผู้มีเงินได้ (60,000 บาท)", value=60000, disabled=True)
+        w_is_65 = st.checkbox("ผู้มีเงินได้อายุ 65 ปีขึ้นไป (ได้รับยกเว้น 190,000 บาท)")
+        w_is_disabled_self = st.checkbox("ผู้มีเงินได้เป็นคนพิการ (ได้รับยกเว้น 190,000 บาท)")
         w_spouse = st.checkbox("คู่สมรสไม่มีรายได้ (60,000 บาท)")
         w_child_total = st.number_input("จำนวนบุตรทั้งหมด", min_value=0, value=2)
         w_child_after61 = st.number_input("บุตรที่เกิดปี 2561 เป็นต้นไป", min_value=0, value=2)
@@ -170,7 +172,14 @@ with ded_tabs[0]:
         if w_child_total == w_child_after61: alw_child = 30000 + max(0, (w_child_after61 - 1) * 60000)
         else: alw_child = (max(0, w_child_total - w_child_after61) * 30000) + (w_child_after61 * 60000)
     t1 = 60000 + (60000 if w_spouse else 0) + alw_child + (min(w_parent, 4) * 30000) + min(w_parent_hlth, 15000) + (w_disable * 60000)
-    st.success(f"**รวมมูลค่าลดหย่อนหมวดครอบครัว:** {t1:,.0f} บาท")
+    
+    # คำนวณเงินได้ที่ได้รับยกเว้น (กรณี 65+ และคนพิการ)
+    self_exempt = (190000 if w_is_65 else 0) + (190000 if w_is_disabled_self else 0)
+    
+    if self_exempt > 0:
+        st.success(f"**รวมมูลค่าลดหย่อนหมวดครอบครัว:** {t1:,.0f} บาท | 🌟 **ได้รับสิทธิยกเว้นเงินได้:** {self_exempt:,.0f} บาท")
+    else:
+        st.success(f"**รวมมูลค่าลดหย่อนหมวดครอบครัว:** {t1:,.0f} บาท")
 
 with ded_tabs[1]:
     c1, c2 = st.columns(2)
@@ -219,7 +228,7 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         if pd.notna(rate) and pd.notna(amt) and 0 < rate < 100 and amt > 0:
             tot_div_c += amt * (rate / (100.0 - rate))
     
-    # รวมฐานภาษี (มรดกและยกเว้นจะไม่นำมารวมในรายได้พึงประเมิน)
+    # รวมฐานภาษีพึงประเมิน 
     total_income = inc_1 + inc_2 + inc_5 + inc_6 + inc_7 + inc_8 + inc_inv + tot_div_amt + tot_div_c
     wht_base = wht_1 + wht_2 + wht_5 + wht_6 + wht_7 + wht_8 + wht_inv
     wht_total = wht_base + tot_div_wht
@@ -232,7 +241,8 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     exp_8 = inc_8 * 0.60
     exp_total = exp_1_2 + exp_5 + exp_6 + exp_7 + exp_8
     
-    inc_after_exp = total_income - exp_total
+    # หักเงินได้ที่ได้รับยกเว้น (กรณี 65+ และคนพิการ) ออกจากฐานรายได้พึงประเมิน
+    inc_after_exp = max(0, total_income - exp_total - self_exempt)
 
     # Scenario A (ลงทุน)
     cap_life_hlth_A = min(w_life + min(w_hlth, 25000), 100000)
@@ -302,9 +312,14 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
             html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ลงทุนอื่นๆ:</b> {inc_inv:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
         if tot_div_amt > 0:
             html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินปันผล 40(4):</b> {tot_div_amt:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
+        
+        # เพิ่มบรรทัดยกเว้นเงินได้สำหรับผู้สูงอายุและคนพิการ
+        if self_exempt > 0:
+            html_rows.append(f"<tr style='background-color: #d1ecf1;'><td style='padding: 6px 5px; border-bottom: 1px solid #eee; color: #0c5460;'>- <b>ยกเว้น (65ปี/คนพิการ):</b> {self_exempt:,.2f}</td><td style='padding: 6px 5px; border-bottom: 1px solid #eee; color: #0c5460;'>หักออกจากฐานรายได้</td></tr>")
 
         if html_rows: st.markdown(f"<table style='width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px;'>{''.join(html_rows)}</table>", unsafe_allow_html=True)
-        st.info(f"**รวมเงินได้พึงประเมิน:** {total_income:,.2f} บาท\n\n**รวมค่าใช้จ่ายที่หักได้:** {exp_total:,.2f} บาท")
+        
+        st.info(f"**รวมเงินได้พึงประเมิน:** {total_income:,.2f} บาท\n\n**รวมค่าใช้จ่ายที่หักได้:** {exp_total:,.2f} บาท" + (f"\n\n**ได้รับสิทธิยกเว้น (65ปี/คนพิการ):** {self_exempt:,.2f} บาท" if self_exempt > 0 else ""))
         
         st.markdown("#### 4️⃣ ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล")
         if wht_1 > 0: st.write(f"- หัก ณ ที่จ่าย 40(1): {wht_1:,.2f} บาท")
@@ -342,17 +357,22 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     # แสดงผลตารางสรุปสุดท้าย
     # ==========================================
     st.markdown("---")
+    
+    exempt_row = f'<tr><td style="padding: 5px 10px 5px 60px;">- เงินได้ยกเว้น (65ปี/คนพิการ)</td><td style="text-align: right; font-weight: bold;">{self_exempt:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>' if self_exempt > 0 else ""
+    net_after_exp_label = "= เงินได้หลังหักค่าใช้จ่ายและยกเว้น" if self_exempt > 0 else "= เงินได้หลังหักค่าใช้จ่าย"
+    
     st.markdown(f"""
     <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 15px; margin-top: 10px; border: 1px solid #dee2e6;">
         <tr style="background-color: #f8f9fa; font-weight: bold;"><td colspan="3" style="padding: 10px;">ตารางสรุปภาษี</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">+ เงินได้พึงประเมิน</td><td style="text-align: right; width: 150px; font-weight: bold;">{total_income:,.2f}</td><td style="width: 50px; padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{exp_total:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
-        <tr><td style="padding: 5px 10px 5px 60px; font-weight: bold;">= เงินได้หลังหักค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{inc_after_exp:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
+        {exempt_row}
+        <tr><td style="padding: 5px 10px 5px 60px; font-weight: bold;">{net_after_exp_label}</td><td style="text-align: right; font-weight: bold;">{inc_after_exp:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าลดหย่อน</td><td style="text-align: right; font-weight: bold;">{tot_allowance_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- เงินบริจาค</td><td style="text-align: right; font-weight: bold;">{don_A + min(w_don_pol, 10000):,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr style="background-color: #cce5ff;"><td style="padding: 5px 10px 5px 60px; font-weight: bold;">= เงินได้สุทธิ</td><td style="text-align: right; font-weight: bold;">{net_inc_A:,.2f}</td><td style="padding-left: 10px; font-weight: bold;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">ภาษีที่ประเมิน</td><td style="text-align: right; font-weight: bold;">{tax_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
-        <tr><td style="padding: 5px 10px 5px 60px;">- ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล</td><td style="text-align: right; font-weight: bold;">{wht_total + tot_div_c:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
+        <tr><td style="padding: 5px 10px 5px 60px;">- ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล</td><td style="text-align: right; font-weight: bold;">{wht_total + wht_inherit + tot_div_c:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr style="{final_class}"><td style="padding: 10px 10px 10px 60px; font-weight: bold;">{final_label}</td><td style="text-align: right; font-weight: bold; font-size: 18px;">{abs(final_tax_A):,.2f}</td><td style="padding-left: 10px; font-weight: bold;">บาท</td></tr>
     </table>
     <br>
