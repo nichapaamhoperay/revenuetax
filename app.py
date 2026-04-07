@@ -297,27 +297,27 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         exp_1_2_shown = False
         
         if inc_1 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินเดือน 40(1):</b> {inc_1:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f}</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>เงินเดือน 40(1):</b> {inc_1:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #495057;'>หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f} บาท</td></tr>")
             exp_1_2_shown = True
         if inc_2 > 0:
-            exp_text = f"หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f}" if not exp_1_2_shown else ""
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าตอบแทน 40(2):</b> {inc_2:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>{exp_text}</td></tr>")
+            exp_text = f"หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f} บาท" if not exp_1_2_shown else ""
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>ค่าตอบแทน 40(2):</b> {inc_2:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #495057;'>{exp_text}</td></tr>")
         if inc_5 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าเช่า 40(5):</b> {inc_5:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(5) (30%): {exp_5:,.2f}</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>ค่าเช่า 40(5):</b> {inc_5:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #495057;'>หักค่าใช้จ่าย 40(5) (30%): {exp_5:,.2f} บาท</td></tr>")
         if inc_6 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>วิชาชีพอิสระ 40(6):</b> {inc_6:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(6) (30%): {exp_6:,.2f}</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>วิชาชีพอิสระ 40(6):</b> {inc_6:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #495057;'>หักค่าใช้จ่าย 40(6) (30%): {exp_6:,.2f} บาท</td></tr>")
         if inc_7 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>รับเหมา 40(7):</b> {inc_7:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(7) (60%): {exp_7:,.2f}</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>รับเหมา 40(7):</b> {inc_7:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #495057;'>หักค่าใช้จ่าย 40(7) (60%): {exp_7:,.2f} บาท</td></tr>")
         if inc_8 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ธุรกิจ 40(8):</b> {inc_8:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(8) (60%): {exp_8:,.2f}</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>ธุรกิจ 40(8):</b> {inc_8:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #495057;'>หักค่าใช้จ่าย 40(8) (60%): {exp_8:,.2f} บาท</td></tr>")
         if inc_inv > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ลงทุนอื่นๆ:</b> {inc_inv:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>ลงทุนอื่นๆ:</b> {inc_inv:,.2f} บาท</td><td style='padding: 4px 0; border: none;'></td></tr>")
         if tot_div_amt > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินปันผล 40(4):</b> {tot_div_amt:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>เงินปันผล 40(4):</b> {tot_div_amt:,.2f} บาท</td><td style='padding: 4px 0; border: none;'></td></tr>")
         
-        # เพิ่มบรรทัดยกเว้นเงินได้สำหรับผู้สูงอายุและคนพิการ
+        # เพิ่มบรรทัดยกเว้นเงินได้สำหรับผู้สูงอายุและคนพิการ (แบบเน้นสีตัวอักษร)
         if self_exempt > 0:
-            html_rows.append(f"<tr style='background-color: #d1ecf1;'><td style='padding: 6px 5px; border-bottom: 1px solid #eee; color: #0c5460;'>- <b>ยกเว้น (65ปี/คนพิการ):</b> {self_exempt:,.2f}</td><td style='padding: 6px 5px; border-bottom: 1px solid #eee; color: #0c5460;'>หักออกจากฐานรายได้</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 4px 0; border: none; color: #0c5460;'>&#8226; <b>ยกเว้น (65ปี/คนพิการ):</b> {self_exempt:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #0c5460;'>หักออกจากฐานรายได้</td></tr>")
 
         if html_rows: st.markdown(f"<table style='width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px;'>{''.join(html_rows)}</table>", unsafe_allow_html=True)
         
