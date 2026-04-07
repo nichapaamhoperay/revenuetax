@@ -1,3 +1,10 @@
+เป็นไอเดียที่ยอดเยี่ยมมากค่ะ! การมี **"รายละเอียดเบื้องหลังการคำนวณ" (Breakdown)** ก่อนที่จะไปดูตารางสรุปสุดท้าย จะช่วยให้เราตรวจสอบความถูกต้องได้ง่ายขึ้นมาก และเห็นภาพชัดเจนว่าตัวเลขแต่ละก้อนมาจากไหน (โดยเฉพาะค่าใช้จ่ายแบบเหมาที่สรรพากรกำหนดเพดานไว้)
+
+Gemini ได้เพิ่มส่วน **"📋 สรุปรายละเอียดการคำนวณ (Breakdown)"** แทรกไว้ให้ก่อนถึงตารางสรุปภาษี โดยแบ่งเป็น 2 คอลัมน์สวยงาม และเขียนเงื่อนไขให้ **"แสดงเฉพาะรายการที่มีค่ามากกว่า 0"** ตามที่คุณต้องการเป๊ะเลยค่ะ
+
+รบกวน Copy โค้ดฉบับอัปเดตนี้ ไปวางทับในไฟล์ `app.py` บน GitHub ได้เลยค่ะ 👇
+
+```python
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,7 +31,7 @@ if 'df_sal' not in st.session_state:
     div_data = [["KBANK", 20, 5000.0, 0.0, 0.0, 500.0]] + [["", 0, 0.0, 0.0, 0.0, 0.0] for _ in range(9)]
     st.session_state.df_div = pd.DataFrame(div_data, columns=["ชื่อหลักทรัพย์", "อัตราภาษี(%)", "เงินปันผล", "ไม่ได้รับเครดิต", "ยกเว้นภาษี", "หัก ณ ที่จ่าย"])
 
-# ฟังก์ชันตารางแบบแก้ไขได้ (เพิ่ม Total คืนมา)
+# ฟังก์ชันตารางแบบแก้ไขได้
 config = {"เดือน": st.column_config.TextColumn(disabled=True)}
 
 with tabs[0]: 
@@ -91,7 +98,6 @@ with ded_tabs[0]:
         w_parent_hlth = st.number_input("เบี้ยประกันสุขภาพบิดามารดา (Max 15k)", min_value=0, value=0, step=1000)
         w_disable = st.number_input("เลี้ยงดูคนพิการ (คนละ 60k)", min_value=0, value=0)
     
-    # คำนวณ Total แบบ Real-time
     alw_child = 0
     if w_child_total > 0:
         if w_child_total == w_child_after61: alw_child = 30000 + max(0, (w_child_after61 - 1) * 60000)
@@ -140,10 +146,17 @@ with ded_tabs[4]:
 # ==========================================
 st.markdown("---")
 if st.button("🧮 ประมวลผลภาษี", type="primary", use_container_width=True):
+    # 1. จัดการรายได้
     inc_1 = df_sal["รายได้"].sum()
-    inc_2 = df_agt["รายได้"].sum() + df_fa["รายได้"].sum()
+    inc_2_agt = df_agt["รายได้"].sum()
+    inc_2_fa = df_fa["รายได้"].sum()
+    inc_2 = inc_2_agt + inc_2_fa
     inc_5 = df_rent["รายได้"].sum()
-    wht_base = df_sal["หัก ณ ที่จ่าย"].sum() + df_agt["หัก ณ ที่จ่าย"].sum() + df_fa["หัก ณ ที่จ่าย"].sum() + df_rent["หัก ณ ที่จ่าย"].sum()
+    
+    wht_1 = df_sal["หัก ณ ที่จ่าย"].sum()
+    wht_2 = df_agt["หัก ณ ที่จ่าย"].sum() + df_fa["หัก ณ ที่จ่าย"].sum()
+    wht_5 = df_rent["หัก ณ ที่จ่าย"].sum()
+    wht_base = wht_1 + wht_2 + wht_5
     
     tot_div_a = tot_div_c = tot_div_w = 0
     for _, row in df_div.iterrows():
@@ -151,29 +164,41 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         amt = pd.to_numeric(row["เงินปันผล"], errors='coerce')
         wht = pd.to_numeric(row["หัก ณ ที่จ่าย"], errors='coerce')
         if pd.notna(rate) and pd.notna(amt) and 0 < rate < 100 and amt > 0:
-            cred = amt * (rate / (100.0 - rate))
-            tot_div_c += cred
+            tot_div_c += amt * (rate / (100.0 - rate))
         tot_div_a += (amt if pd.notna(amt) else 0)
         tot_div_w += (wht if pd.notna(wht) else 0)
     
     total_income = inc_1 + inc_2 + inc_5 + tot_div_a + tot_div_c
-    exp_total = min((inc_1 + inc_2) * 0.5, 100000) + (inc_5 * 0.3)
+    
+    # คำนวณค่าใช้จ่าย
+    exp_1_2 = min((inc_1 + inc_2) * 0.5, 100000)
+    exp_5 = inc_5 * 0.3
+    exp_total = exp_1_2 + exp_5
     inc_after_exp = total_income - exp_total
 
     # Scenario A (ลงทุน)
     cap_life_hlth_A = min(w_life + min(w_hlth, 25000), 100000)
-    cap_retire_A = min(min(w_pension, total_income * 0.15, 200000) + min(w_pvd, total_income * 0.15, 500000) + min(w_rmf, total_income * 0.30, 500000), 500000)
+    alw_pension_A = min(w_pension, total_income * 0.15, 200000)
+    alw_pvd_A = min(w_pvd, total_income * 0.15, 500000)
+    alw_rmf_A = min(w_rmf, total_income * 0.30, 500000)
+    cap_retire_A = min(alw_pension_A + alw_pvd_A + alw_rmf_A, 500000)
     alw_tesg_A = min(w_tesg, total_income * 0.30, 300000)
     alw_soc_capped = min(w_soc, 9000)
+    alw_home_capped = min(w_home, 100000)
+    alw_easy_capped = min(w_easy, 50000)
+    alw_pol_capped = min(w_don_pol, 10000)
     
-    tot_allowance_A = t1 + alw_soc_capped + min(w_home, 100000) + min(w_easy, 50000) + cap_life_hlth_A + cap_retire_A + alw_tesg_A
-    net_pre_don_A = max(0, inc_after_exp - tot_allowance_A - min(w_don_pol, 10000))
-    don_A = min(w_don_edu * 2, net_pre_don_A * 0.1) + min(w_don_gen, (net_pre_don_A - min(w_don_edu * 2, net_pre_don_A * 0.1)) * 0.1)
+    tot_allowance_A = t1 + alw_soc_capped + alw_home_capped + alw_easy_capped + cap_life_hlth_A + cap_retire_A + alw_tesg_A
+    net_pre_don_A = max(0, inc_after_exp - tot_allowance_A - alw_pol_capped)
+    
+    don_edu_calc = min(w_don_edu * 2, net_pre_don_A * 0.1)
+    don_gen_calc = min(w_don_gen, (net_pre_don_A - don_edu_calc) * 0.1)
+    don_A = don_edu_calc + don_gen_calc
     net_inc_A = net_pre_don_A - don_A
 
     # Scenario B (ไม่ลงทุน)
-    tot_allowance_B = t1 + alw_soc_capped + min(w_home, 100000) + min(w_easy, 50000) + min(w_pvd, total_income * 0.15, 500000)
-    net_pre_don_B = max(0, inc_after_exp - tot_allowance_B - min(w_don_pol, 10000))
+    tot_allowance_B = t1 + alw_soc_capped + alw_home_capped + alw_easy_capped + min(w_pvd, total_income * 0.15, 500000)
+    net_pre_don_B = max(0, inc_after_exp - tot_allowance_B - alw_pol_capped)
     don_B = min(w_don_edu * 2, net_pre_don_B * 0.1) + min(w_don_gen, (net_pre_don_B - min(w_don_edu * 2, net_pre_don_B * 0.1)) * 0.1)
     net_inc_B = net_pre_don_B - don_B
 
@@ -199,14 +224,68 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     if final_tax_A < 0: final_class, final_label = "background-color: #155724; color: white;", "= มีภาษีที่ชำระไว้เกิน (ได้คืน)"
     else: final_class, final_label = "background-color: #8b0000; color: white;", "= มีภาษีที่ต้องชำระ"
 
+    # ==========================================
+    # แสดงผล Breakdown
+    # ==========================================
+    st.markdown("---")
+    st.markdown("### 📋 สรุปรายละเอียดการคำนวณ (Breakdown)")
+    b_col1, b_col2 = st.columns(2)
+    
+    with b_col1:
+        st.markdown("#### 1️⃣ สรุปรายได้และค่าใช้จ่าย")
+        if inc_1 > 0: st.write(f"- **เงินเดือน 40(1):** {inc_1:,.2f} บาท")
+        if inc_2 > 0: st.write(f"- **ค่าตอบแทน 40(2):** {inc_2:,.2f} บาท")
+        if inc_1 > 0 or inc_2 > 0: st.caption(f"  *หักค่าใช้จ่าย 40(1)+(2) ได้:* {exp_1_2:,.2f} บาท")
+        
+        if inc_5 > 0: 
+            st.write(f"- **ค่าเช่า 40(5):** {inc_5:,.2f} บาท")
+            st.caption(f"  *หักค่าใช้จ่าย 40(5) (30%):* {exp_5:,.2f} บาท")
+            
+        if tot_div_a > 0:
+            st.write(f"- **เงินปันผล 40(4):** {tot_div_a:,.2f} บาท")
+            st.write(f"- **เครดิตภาษีปันผล:** {tot_div_c:,.2f} บาท")
+            
+        st.info(f"**รวมเงินได้พึงประเมิน:** {total_income:,.2f} บาท\n\n**รวมค่าใช้จ่ายที่หักได้:** {exp_total:,.2f} บาท")
+        
+        st.markdown("#### 4️⃣ ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล")
+        if wht_1 > 0: st.write(f"- หัก ณ ที่จ่าย 40(1): {wht_1:,.2f} บาท")
+        if wht_2 > 0: st.write(f"- หัก ณ ที่จ่าย 40(2): {wht_2:,.2f} บาท")
+        if wht_5 > 0: st.write(f"- หัก ณ ที่จ่าย 40(5): {wht_5:,.2f} บาท")
+        if tot_div_w > 0: st.write(f"- หัก ณ ที่จ่าย ปันผล: {tot_div_w:,.2f} บาท")
+        if tot_div_c > 0: st.write(f"- เครดิตภาษีปันผล: {tot_div_c:,.2f} บาท")
+        st.success(f"**รวมภาษีที่จ่ายล่วงหน้าแล้ว:** {wht_total + tot_div_c:,.2f} บาท")
+
+    with b_col2:
+        st.markdown("#### 2️⃣ สรุปค่าลดหย่อน")
+        if t1 > 0: st.write(f"- หมวดครอบครัว: {t1:,.2f} บาท")
+        if cap_life_hlth_A > 0: st.write(f"- ประกันชีวิต/สุขภาพ: {cap_life_hlth_A:,.2f} บาท")
+        if cap_retire_A > 0: st.write(f"- กลุ่มเกษียณ (PVD+RMF+บำนาญ): {cap_retire_A:,.2f} บาท")
+        if alw_tesg_A > 0: st.write(f"- ThaiESG: {alw_tesg_A:,.2f} บาท")
+        if alw_soc_capped > 0: st.write(f"- ประกันสังคม: {alw_soc_capped:,.2f} บาท")
+        if alw_home_capped > 0: st.write(f"- ดอกเบี้ยบ้าน: {alw_home_capped:,.2f} บาท")
+        if alw_easy_capped > 0: st.write(f"- Easy E-Receipt: {alw_easy_capped:,.2f} บาท")
+        st.info(f"**รวมค่าลดหย่อนทั้งหมด:** {tot_allowance_A:,.2f} บาท")
+        
+        st.markdown("#### 3️⃣ สรุปเงินบริจาค")
+        if w_don_edu > 0: 
+            st.write(f"- บริจาคการศึกษา/รพ. (x2): {don_edu_calc:,.2f} บาท")
+            st.caption(f"*(จ่ายจริง {w_don_edu:,.0f} บาท)*")
+        if w_don_gen > 0: st.write(f"- บริจาคทั่วไป: {don_gen_calc:,.2f} บาท")
+        if w_don_pol > 0: st.write(f"- บริจาคพรรคการเมือง: {alw_pol_capped:,.2f} บาท")
+        st.info(f"**รวมเงินบริจาคที่หักได้:** {don_A + alw_pol_capped:,.2f} บาท")
+
+    # ==========================================
+    # แสดงผลตารางสรุปสุดท้าย
+    # ==========================================
+    st.markdown("---")
     st.markdown(f"""
-    <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 15px; margin-top: 20px; border: 1px solid #dee2e6;">
+    <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 15px; margin-top: 10px; border: 1px solid #dee2e6;">
         <tr style="background-color: #f8f9fa; font-weight: bold;"><td colspan="3" style="padding: 10px;">ตารางสรุปภาษี</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">+ เงินได้พึงประเมิน</td><td style="text-align: right; width: 150px; font-weight: bold;">{total_income:,.2f}</td><td style="width: 50px; padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{exp_total:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px; font-weight: bold;">= เงินได้หลังหักค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{inc_after_exp:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าลดหย่อน</td><td style="text-align: right; font-weight: bold;">{tot_allowance_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
-        <tr><td style="padding: 5px 10px 5px 60px;">- เงินบริจาค</td><td style="text-align: right; font-weight: bold;">{don_A + min(w_don_pol, 10000):,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
+        <tr><td style="padding: 5px 10px 5px 60px;">- เงินบริจาค</td><td style="text-align: right; font-weight: bold;">{don_A + alw_pol_capped:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr style="background-color: #cce5ff;"><td style="padding: 5px 10px 5px 60px; font-weight: bold;">= เงินได้สุทธิ</td><td style="text-align: right; font-weight: bold;">{net_inc_A:,.2f}</td><td style="padding-left: 10px; font-weight: bold;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">ภาษีที่ประเมิน</td><td style="text-align: right; font-weight: bold;">{tax_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล</td><td style="text-align: right; font-weight: bold;">{wht_total + tot_div_c:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
@@ -241,3 +320,4 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         <span style="font-size: 15px; color: #212529;">การลงทุนใน RMF, ประกัน และ ThaiESG ช่วยให้คุณประหยัดภาษีไปได้ทั้งหมด <b><span style="color:#28a745;">฿{tax_B - tax_A:,.2f}</span></b></span>
     </div>
     """, unsafe_allow_html=True)
+```
