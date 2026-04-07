@@ -226,18 +226,28 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     
     with b_col1:
         st.markdown("#### 1️⃣ สรุปรายได้และค่าใช้จ่าย")
-        if inc_1 > 0: st.write(f"- **เงินเดือน 40(1):** {inc_1:,.2f} บาท")
-        if inc_2 > 0: st.write(f"- **ค่าตอบแทน 40(2):** {inc_2:,.2f} บาท")
-        if inc_1 > 0 or inc_2 > 0: st.caption(f"  *หักค่าใช้จ่าย 40(1)+(2) ได้:* {exp_1_2:,.2f} บาท")
         
-        if inc_5 > 0: 
-            st.write(f"- **ค่าเช่า 40(5):** {inc_5:,.2f} บาท")
-            st.caption(f"  *หักค่าใช้จ่าย 40(5) (30%):* {exp_5:,.2f} บาท")
+        # จัดตารางรายได้และค่าใช้จ่ายแบบ 2 คอลัมน์
+        html_rows = []
+        exp_1_2_shown = False
+        
+        if inc_1 > 0:
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินเดือน 40(1):</b> {inc_1:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f} บาท</td></tr>")
+            exp_1_2_shown = True
+            
+        if inc_2 > 0:
+            exp_text = f"หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f} บาท" if not exp_1_2_shown else ""
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าตอบแทน 40(2):</b> {inc_2:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>{exp_text}</td></tr>")
+            
+        if inc_5 > 0:
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าเช่า 40(5):</b> {inc_5:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(5) (30%): {exp_5:,.2f} บาท</td></tr>")
             
         if tot_div_a > 0:
-            st.write(f"- **เงินปันผล 40(4):** {tot_div_a:,.2f} บาท")
-            st.write(f"- **เครดิตภาษีปันผล:** {tot_div_c:,.2f} บาท")
-            
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินปันผล 40(4):</b> {tot_div_a:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
+
+        if html_rows:
+            st.markdown(f"<table style='width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px;'>{''.join(html_rows)}</table>", unsafe_allow_html=True)
+
         st.info(f"**รวมเงินได้พึงประเมิน:** {total_income:,.2f} บาท\n\n**รวมค่าใช้จ่ายที่หักได้:** {exp_total:,.2f} บาท")
         
         st.markdown("#### 4️⃣ ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล")
