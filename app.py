@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 
 # ตั้งค่าหน้าจอแอป
 st.set_page_config(page_title="Smart Tax Planner Pro", layout="wide")
@@ -17,7 +18,7 @@ tabs = st.tabs([
 ])
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-# เตรียมตารางข้อมูลเริ่มต้น
+# เตรียมตารางข้อมูลเริ่มต้น (ถ้าโหลดจากไฟล์ Draft จะใช้ตัวเลขใหม่แทน)
 if 'df_sal' not in st.session_state:
     st.session_state.df_sal = pd.DataFrame({"เดือน": months, "รายได้": [150000]*12, "หัก ณ ที่จ่าย": [5000]*12})
     st.session_state.df_agt = pd.DataFrame({"เดือน": months, "รายได้": [0]*12, "หัก ณ ที่จ่าย": [0]*12})
@@ -55,22 +56,22 @@ with tabs[4]:
 # แท็บ 6: 40(6)
 with tabs[5]:
     st.markdown("##### 💼 เงินได้ 40(6) วิชาชีพอิสระ (หมอ, ทนายความ, บัญชี ฯลฯ)")
-    inc_6 = st.number_input("รวมรายได้ 40(6) ทั้งปี", min_value=0, value=0, step=10000)
-    wht_6 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(6)", min_value=0, value=0, step=1000)
+    inc_6 = st.number_input("รวมรายได้ 40(6) ทั้งปี", min_value=0, value=0, step=10000, key="inc_6")
+    wht_6 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(6)", min_value=0, value=0, step=1000, key="wht_6")
     st.info(f"**รวมรายได้ 40(6):** {inc_6:,.2f} บาท | **หัก ณ ที่จ่าย:** {wht_6:,.2f} บาท")
 
 # แท็บ 7: 40(7)
 with tabs[6]:
     st.markdown("##### 🏗️ เงินได้ 40(7) รับเหมา (ลงทุนสัมภาระ)")
-    inc_7 = st.number_input("รวมรายได้ 40(7) ทั้งปี", min_value=0, value=0, step=10000)
-    wht_7 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(7)", min_value=0, value=0, step=1000)
+    inc_7 = st.number_input("รวมรายได้ 40(7) ทั้งปี", min_value=0, value=0, step=10000, key="inc_7")
+    wht_7 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(7)", min_value=0, value=0, step=1000, key="wht_7")
     st.info(f"**รวมรายได้ 40(7):** {inc_7:,.2f} บาท | **หัก ณ ที่จ่าย:** {wht_7:,.2f} บาท")
 
 # แท็บ 8: 40(8)
 with tabs[7]:
     st.markdown("##### 🏢 เงินได้ 40(8) ธุรกิจอื่นๆ (พาณิชย์, เกษตร, ขายของออนไลน์ ฯลฯ)")
-    inc_8 = st.number_input("รวมรายได้ 40(8) ทั้งปี", min_value=0, value=0, step=10000)
-    wht_8 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(8)", min_value=0, value=0, step=1000)
+    inc_8 = st.number_input("รวมรายได้ 40(8) ทั้งปี", min_value=0, value=0, step=10000, key="inc_8")
+    wht_8 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(8)", min_value=0, value=0, step=1000, key="wht_8")
     st.info(f"**รวมรายได้ 40(8):** {inc_8:,.2f} บาท | **หัก ณ ที่จ่าย:** {wht_8:,.2f} บาท")
 
 # แท็บ 9: ลงทุนอื่นๆ
@@ -78,23 +79,23 @@ with tabs[8]:
     st.markdown("##### 📈 เงินได้จากการลงทุนอื่นๆ")
     col1, col2 = st.columns(2)
     
-    inc_inv_1 = col1.number_input("ดอกเบี้ย", min_value=0, value=0, step=1000)
-    wht_inv_1 = col2.number_input("หัก ณ ที่จ่าย ดอกเบี้ย", min_value=0, value=0, step=100)
+    inc_inv_1 = col1.number_input("ดอกเบี้ย", min_value=0, value=0, step=1000, key="inc_inv_1")
+    wht_inv_1 = col2.number_input("หัก ณ ที่จ่าย ดอกเบี้ย", min_value=0, value=0, step=100, key="wht_inv_1")
     
-    inc_inv_2 = col1.number_input("เงินเทียบเท่าปันผล", min_value=0, value=0, step=1000)
-    wht_inv_2 = col2.number_input("หัก ณ ที่จ่าย เงินเทียบเท่าปันผล", min_value=0, value=0, step=100)
+    inc_inv_2 = col1.number_input("เงินเทียบเท่าปันผล", min_value=0, value=0, step=1000, key="inc_inv_2")
+    wht_inv_2 = col2.number_input("หัก ณ ที่จ่าย เงินเทียบเท่าปันผล", min_value=0, value=0, step=100, key="wht_inv_2")
     
-    inc_inv_3 = col1.number_input("Cryptocurrency / Digital Token", min_value=0, value=0, step=1000)
-    wht_inv_3 = col2.number_input("หัก ณ ที่จ่าย Crypto", min_value=0, value=0, step=100)
+    inc_inv_3 = col1.number_input("Cryptocurrency / Digital Token", min_value=0, value=0, step=1000, key="inc_inv_3")
+    wht_inv_3 = col2.number_input("หัก ณ ที่จ่าย Crypto", min_value=0, value=0, step=100, key="wht_inv_3")
     
-    inc_inv_4 = col1.number_input("กำไรจากการขาย RMF", min_value=0, value=0, step=1000)
-    wht_inv_4 = col2.number_input("หัก ณ ที่จ่าย RMF", min_value=0, value=0, step=100)
+    inc_inv_4 = col1.number_input("กำไรจากการขาย RMF", min_value=0, value=0, step=1000, key="inc_inv_4")
+    wht_inv_4 = col2.number_input("หัก ณ ที่จ่าย RMF", min_value=0, value=0, step=100, key="wht_inv_4")
     
-    inc_inv_5 = col1.number_input("กำไรจากการขาย LTF", min_value=0, value=0, step=1000)
-    wht_inv_5 = col2.number_input("หัก ณ ที่จ่าย LTF", min_value=0, value=0, step=100)
+    inc_inv_5 = col1.number_input("กำไรจากการขาย LTF", min_value=0, value=0, step=1000, key="inc_inv_5")
+    wht_inv_5 = col2.number_input("หัก ณ ที่จ่าย LTF", min_value=0, value=0, step=100, key="wht_inv_5")
     
-    inc_inv_6 = col1.number_input("กำไรจากการขาย SSF", min_value=0, value=0, step=1000)
-    wht_inv_6 = col2.number_input("หัก ณ ที่จ่าย SSF", min_value=0, value=0, step=100)
+    inc_inv_6 = col1.number_input("กำไรจากการขาย SSF", min_value=0, value=0, step=1000, key="inc_inv_6")
+    wht_inv_6 = col2.number_input("หัก ณ ที่จ่าย SSF", min_value=0, value=0, step=100, key="wht_inv_6")
     
     inc_inv = inc_inv_1 + inc_inv_2 + inc_inv_3 + inc_inv_4 + inc_inv_5 + inc_inv_6
     wht_inv = wht_inv_1 + wht_inv_2 + wht_inv_3 + wht_inv_4 + wht_inv_5 + wht_inv_6
@@ -105,8 +106,8 @@ with tabs[8]:
 with tabs[9]:
     st.markdown("##### 🏛️ รายได้จากมรดก / รับให้")
     col1, col2 = st.columns(2)
-    inc_inherit = col1.number_input("ยอดเงินมรดกที่ได้รับ", min_value=0, value=0, step=50000)
-    wht_inherit = col2.number_input("ภาษีหัก ณ ที่จ่าย มรดก", min_value=0, value=0, step=1000)
+    inc_inherit = col1.number_input("ยอดเงินมรดกที่ได้รับ", min_value=0, value=0, step=50000, key="inc_inherit")
+    wht_inherit = col2.number_input("ภาษีหัก ณ ที่จ่าย มรดก", min_value=0, value=0, step=1000, key="wht_inherit")
     st.info(f"**รวมรายได้มรดก:** {inc_inherit:,.2f} บาท | **หัก ณ ที่จ่าย:** {wht_inherit:,.2f} บาท")
 
 # แท็บ 11: ยกเว้น
@@ -114,11 +115,11 @@ with tabs[10]:
     st.markdown("##### 🛡️ เงินได้ที่ได้รับการยกเว้นภาษี")
     col1, col2 = st.columns(2)
     
-    inc_ex_1 = col1.number_input("PVD (ส่วนที่เกิน 10,000 บาท)", min_value=0, value=0, step=1000)
-    inc_ex_2 = col2.number_input("กบข. / สงเคราะห์ครูโรงเรียนเอกชน", min_value=0, value=0, step=1000)
+    inc_ex_1 = col1.number_input("PVD (ส่วนที่เกิน 10,000 บาท)", min_value=0, value=0, step=1000, key="inc_ex_1")
+    inc_ex_2 = col2.number_input("กบข. / สงเคราะห์ครูโรงเรียนเอกชน", min_value=0, value=0, step=1000, key="inc_ex_2")
     
-    inc_ex_3 = col1.number_input("ค่าชดเชยที่ได้รับตามกฎหมาย", min_value=0, value=0, step=1000)
-    inc_ex_4 = col2.number_input("เงินได้ยกเว้นอื่นๆ", min_value=0, value=0, step=1000)
+    inc_ex_3 = col1.number_input("ค่าชดเชยที่ได้รับตามกฎหมาย", min_value=0, value=0, step=1000, key="inc_ex_3")
+    inc_ex_4 = col2.number_input("เงินได้ยกเว้นอื่นๆ", min_value=0, value=0, step=1000, key="inc_ex_4")
     
     inc_exempt = inc_ex_1 + inc_ex_2 + inc_ex_3 + inc_ex_4
     st.info(f"**รวมเงินได้ยกเว้นภาษี:** {inc_exempt:,.2f} บาท")
@@ -156,16 +157,16 @@ with ded_tabs[0]:
     c1, c2 = st.columns(2)
     with c1:
         w_self = st.number_input("ลดหย่อนผู้มีเงินได้ (60,000 บาท)", value=60000, disabled=True)
-        w_is_65 = st.checkbox("ผู้มีเงินได้อายุ 65 ปีขึ้นไป (ได้รับยกเว้น 190,000 บาท)")
-        w_is_disabled_self = st.checkbox("ผู้มีเงินได้เป็นคนพิการ (ได้รับยกเว้น 190,000 บาท)")
-        w_spouse = st.checkbox("คู่สมรสไม่มีรายได้ (60,000 บาท)")
-        w_child_total = st.number_input("จำนวนบุตรทั้งหมด", min_value=0, value=2)
-        w_child_after61 = st.number_input("บุตรที่เกิดปี 2561 เป็นต้นไป", min_value=0, value=2)
-        w_child_adopt = st.number_input("จำนวนบุตรบุญธรรม", min_value=0, value=0)
+        w_is_65 = st.checkbox("ผู้มีเงินได้อายุ 65 ปีขึ้นไป (ได้รับยกเว้น 190,000 บาท)", key="w_is_65")
+        w_is_disabled_self = st.checkbox("ผู้มีเงินได้เป็นคนพิการ (ได้รับยกเว้น 190,000 บาท)", key="w_is_disabled_self")
+        w_spouse = st.checkbox("คู่สมรสไม่มีรายได้ (60,000 บาท)", key="w_spouse")
+        w_child_total = st.number_input("จำนวนบุตรทั้งหมด", min_value=0, value=2, key="w_child_total")
+        w_child_after61 = st.number_input("บุตรที่เกิดปี 2561 เป็นต้นไป", min_value=0, value=2, key="w_child_after61")
+        w_child_adopt = st.number_input("จำนวนบุตรบุญธรรม", min_value=0, value=0, key="w_child_adopt")
     with c2:
-        w_parent = st.number_input("เลี้ยงดูบิดามารดา (คนละ 30k)", min_value=0, max_value=4, value=0)
-        w_parent_hlth = st.number_input("เบี้ยประกันสุขภาพบิดามารดา (Max 15k)", min_value=0, value=0, step=1000)
-        w_disable = st.number_input("เลี้ยงดูคนพิการ (คนละ 60k)", min_value=0, value=0)
+        w_parent = st.number_input("เลี้ยงดูบิดามารดา (คนละ 30k)", min_value=0, max_value=4, value=0, key="w_parent")
+        w_parent_hlth = st.number_input("เบี้ยประกันสุขภาพบิดามารดา (Max 15k)", min_value=0, value=0, step=1000, key="w_parent_hlth")
+        w_disable = st.number_input("เลี้ยงดูคนพิการ (คนละ 60k)", min_value=0, value=0, key="w_disable")
     
     alw_child = 0
     if w_child_total > 0:
@@ -184,26 +185,26 @@ with ded_tabs[0]:
 with ded_tabs[1]:
     c1, c2 = st.columns(2)
     with c1:
-        w_life = st.number_input("ประกันชีวิตทั่วไป (Max 100k)", min_value=0, value=100000, step=5000)
-        w_hlth = st.number_input("ประกันสุขภาพ (Max 25k)", min_value=0, value=25000, step=1000)
-        w_soc = st.number_input("ประกันสังคม (Max 9k)", min_value=0, value=9000, step=500)
+        w_life = st.number_input("ประกันชีวิตทั่วไป (Max 100k)", min_value=0, value=100000, step=5000, key="w_life")
+        w_hlth = st.number_input("ประกันสุขภาพ (Max 25k)", min_value=0, value=25000, step=1000, key="w_hlth")
+        w_soc = st.number_input("ประกันสังคม (Max 9k)", min_value=0, value=9000, step=500, key="w_soc")
     with c2:
         st.markdown("**กลุ่มเกษียณ (รวมกันไม่เกิน 500,000)**")
-        w_pvd = st.number_input("Provident Fund (PVD)", min_value=0, value=120000, step=5000)
-        w_rmf = st.number_input("กองทุน RMF", min_value=0, value=50000, step=5000)
-        w_pension = st.number_input("ประกันชีวิตแบบบำนาญ", min_value=0, value=0, step=5000)
+        w_pvd = st.number_input("Provident Fund (PVD)", min_value=0, value=120000, step=5000, key="w_pvd")
+        w_rmf = st.number_input("กองทุน RMF", min_value=0, value=50000, step=5000, key="w_rmf")
+        w_pension = st.number_input("ประกันชีวิตแบบบำนาญ", min_value=0, value=0, step=5000, key="w_pension")
         st.markdown("**แยกวงเงิน**")
-        w_tesg = st.number_input("กองทุน ThaiESG (Max 300k)", min_value=0, value=30000, step=5000)
+        w_tesg = st.number_input("กองทุน ThaiESG (Max 300k)", min_value=0, value=30000, step=5000, key="w_tesg")
 
-with ded_tabs[2]: w_home = st.number_input("ดอกเบี้ยบ้าน (Max 100k)", min_value=0, value=100000, step=5000)
-with ded_tabs[3]: w_easy = st.number_input("Easy E-Receipt (Max 50k)", min_value=0, value=0, step=1000)
+with ded_tabs[2]: w_home = st.number_input("ดอกเบี้ยบ้าน (Max 100k)", min_value=0, value=100000, step=5000, key="w_home")
+with ded_tabs[3]: w_easy = st.number_input("Easy E-Receipt (Max 50k)", min_value=0, value=0, step=1000, key="w_easy")
 with ded_tabs[4]:
     c1, c2 = st.columns(2)
     with c1:
-        w_don_edu = st.number_input("บริจาคการศึกษา/รพ. (ได้ x2)", min_value=0, value=0, step=1000)
-        w_don_gen = st.number_input("บริจาคทั่วไป", min_value=0, value=10000, step=1000)
+        w_don_edu = st.number_input("บริจาคการศึกษา/รพ. (ได้ x2)", min_value=0, value=0, step=1000, key="w_don_edu")
+        w_don_gen = st.number_input("บริจาคทั่วไป", min_value=0, value=10000, step=1000, key="w_don_gen")
     with c2:
-        w_don_pol = st.number_input("บริจาคพรรคการเมือง (Max 10k)", min_value=0, value=0, step=500)
+        w_don_pol = st.number_input("บริจาคพรรคการเมือง (Max 10k)", min_value=0, value=0, step=500, key="w_don_pol")
 
 # ==========================================
 # 4. ประมวลผลภาษี
@@ -412,3 +413,76 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     """
     
     st.markdown(summary_html, unsafe_allow_html=True)
+
+# ==========================================
+# 5. โซน จัดการระบบ Save / Load ข้อมูล
+# ==========================================
+with st.sidebar:
+    st.header("💾 จัดการข้อมูล (Draft)")
+    st.markdown("สามารถบันทึกข้อมูลที่กรอกไว้เพื่อกลับมาทำต่อได้")
+    
+    st.markdown("---")
+    st.subheader("📥 โหลดข้อมูล (Load)")
+    uploaded_file = st.file_uploader("อัปโหลดไฟล์ Draft (.json)", type="json")
+    if uploaded_file is not None:
+        if st.button("🔄 โหลดข้อมูลเข้าสู่ระบบ", use_container_width=True):
+            data = json.load(uploaded_file)
+            
+            # โหลดข้อมูลตาราง
+            for df_key in ['df_sal', 'df_agt', 'df_fa', 'df_rent', 'df_div']:
+                if df_key in data:
+                    st.session_state[df_key] = pd.DataFrame(data[df_key])
+            
+            # โหลดข้อมูลช่องกรอกตัวเลขและ Checkbox
+            keys_to_load = [
+                "inc_6", "wht_6", "inc_7", "wht_7", "inc_8", "wht_8",
+                "inc_inv_1", "wht_inv_1", "inc_inv_2", "wht_inv_2", "inc_inv_3", "wht_inv_3",
+                "inc_inv_4", "wht_inv_4", "inc_inv_5", "wht_inv_5", "inc_inv_6", "wht_inv_6",
+                "inc_inherit", "wht_inherit", "inc_ex_1", "inc_ex_2", "inc_ex_3", "inc_ex_4",
+                "w_is_65", "w_is_disabled_self", "w_spouse", "w_child_total", "w_child_after61", "w_child_adopt",
+                "w_parent", "w_parent_hlth", "w_disable", "w_life", "w_hlth", "w_soc",
+                "w_pvd", "w_rmf", "w_pension", "w_tesg", "w_home", "w_easy",
+                "w_don_edu", "w_don_gen", "w_don_pol"
+            ]
+            for k in keys_to_load:
+                if k in data:
+                    st.session_state[k] = data[k]
+                    
+            st.success("✅ โหลดข้อมูลสำเร็จ!")
+            st.rerun() # รีเฟรชหน้าจอเพื่อแสดงผลข้อมูลใหม่
+
+    st.markdown("---")
+    st.subheader("💾 บันทึกข้อมูล (Save)")
+    
+    # รวบรวมข้อมูลทั้งหมดที่กรอกล่าสุดเพื่อสร้างไฟล์ Save
+    save_keys = [
+        "inc_6", "wht_6", "inc_7", "wht_7", "inc_8", "wht_8",
+        "inc_inv_1", "wht_inv_1", "inc_inv_2", "wht_inv_2", "inc_inv_3", "wht_inv_3",
+        "inc_inv_4", "wht_inv_4", "inc_inv_5", "wht_inv_5", "inc_inv_6", "wht_inv_6",
+        "inc_inherit", "wht_inherit", "inc_ex_1", "inc_ex_2", "inc_ex_3", "inc_ex_4",
+        "w_is_65", "w_is_disabled_self", "w_spouse", "w_child_total", "w_child_after61", "w_child_adopt",
+        "w_parent", "w_parent_hlth", "w_disable", "w_life", "w_hlth", "w_soc",
+        "w_pvd", "w_rmf", "w_pension", "w_tesg", "w_home", "w_easy",
+        "w_don_edu", "w_don_gen", "w_don_pol"
+    ]
+    
+    save_data = {
+        "df_sal": df_sal.to_dict(orient='records'),
+        "df_agt": df_agt.to_dict(orient='records'),
+        "df_fa": df_fa.to_dict(orient='records'),
+        "df_rent": df_rent.to_dict(orient='records'),
+        "df_div": df_div.to_dict(orient='records')
+    }
+    
+    for k in save_keys:
+        save_data[k] = st.session_state.get(k)
+        
+    json_str = json.dumps(save_data, indent=4)
+    
+    st.download_button(
+        label="⬇️ ดาวน์โหลดไฟล์ Draft (JSON)", 
+        data=json_str, 
+        file_name="SmartTax_Draft.json", 
+        mime="application/json", 
+        use_container_width=True
+    )
