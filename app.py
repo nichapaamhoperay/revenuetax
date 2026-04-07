@@ -11,7 +11,10 @@ st.title("📊 Smart Tax Planner Pro")
 # 1. โซนรายได้ (Income Section)
 # ==========================================
 st.header("1. รายได้และภาษีหัก ณ ที่จ่าย")
-tabs = st.tabs(['💰 เงินเดือน (40(1))', '🛡️ ค่าคอมมิชชัน (40(2))', '📈 ค่าตอบแทน FA (40(2))', '🏠 ค่าเช่าบ้าน (40(5))', '📊 เงินปันผล'])
+tabs = st.tabs([
+    '💰 เงินเดือน (40(1))', '🛡️ ค่าคอมฯ (40(2))', '📈 ค่า FA (40(2))', '🏠 ค่าเช่า (40(5))', '📊 เงินปันผล', 
+    '💼 40(6)', '🏗️ 40(7)', '🏢 40(8)', '📈 ลงทุนอื่นๆ', '🏛️ มรดก', '🛡️ ยกเว้น'
+])
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 # เตรียมตารางข้อมูลเริ่มต้น
@@ -24,36 +27,56 @@ if 'df_sal' not in st.session_state:
     div_data = [["KBANK", 20, 5000.0, 0.0, 0.0, 500.0]] + [["", 0, 0.0, 0.0, 0.0, 0.0] for _ in range(9)]
     st.session_state.df_div = pd.DataFrame(div_data, columns=["ชื่อหลักทรัพย์", "อัตราภาษี(%)", "เงินปันผล", "ไม่ได้รับเครดิต", "ยกเว้นภาษี", "หัก ณ ที่จ่าย"])
 
-# ฟังก์ชันตารางแบบแก้ไขได้
 config = {"เดือน": st.column_config.TextColumn(disabled=True)}
 
+# แท็บ 1-4: รายเดือน
 with tabs[0]: 
     df_sal = st.data_editor(st.session_state.df_sal, use_container_width=True, hide_index=True, column_config=config, key="editor_sal")
-    st.info(f"**รวมเงินเดือน:** {df_sal['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_sal['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
-
+    st.info(f"**รวมเงินเดือน:** {df_sal['รายได้'].sum():,.2f} บาท | **หัก ณ ที่จ่าย:** {df_sal['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
 with tabs[1]: 
     df_agt = st.data_editor(st.session_state.df_agt, use_container_width=True, hide_index=True, column_config=config, key="editor_agt")
-    st.info(f"**รวมค่าคอมมิชชัน:** {df_agt['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_agt['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
-
+    st.info(f"**รวมค่าคอมมิชชัน:** {df_agt['รายได้'].sum():,.2f} บาท | **หัก ณ ที่จ่าย:** {df_agt['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
 with tabs[2]: 
     df_fa  = st.data_editor(st.session_state.df_fa, use_container_width=True, hide_index=True, column_config=config, key="editor_fa")
-    st.info(f"**รวมค่าตอบแทน FA:** {df_fa['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_fa['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
-
+    st.info(f"**รวมค่าตอบแทน FA:** {df_fa['รายได้'].sum():,.2f} บาท | **หัก ณ ที่จ่าย:** {df_fa['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
 with tabs[3]: 
     df_rent = st.data_editor(st.session_state.df_rent, use_container_width=True, hide_index=True, column_config=config, key="editor_rent")
-    st.info(f"**รวมค่าเช่าบ้าน:** {df_rent['รายได้'].sum():,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {df_rent['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
+    st.info(f"**รวมค่าเช่าบ้าน:** {df_rent['รายได้'].sum():,.2f} บาท | **หัก ณ ที่จ่าย:** {df_rent['หัก ณ ที่จ่าย'].sum():,.2f} บาท")
 
+# แท็บ 5: เงินปันผล
 with tabs[4]: 
     st.markdown("💡 *กรอกอัตราภาษีและเงินปันผล ระบบจะคำนวณเครดิตให้ตอนกดประมวลผลค่ะ*")
     df_div = st.data_editor(st.session_state.df_div, use_container_width=True, hide_index=True, key="editor_div")
-    tot_div_amt = pd.to_numeric(df_div["เงินปันผล"], errors='coerce').sum()
-    tot_div_wht = pd.to_numeric(df_div["หัก ณ ที่จ่าย"], errors='coerce').sum()
-    st.info(f"**รวมเงินปันผล:** {tot_div_amt:,.2f} บาท | **รวมภาษีหัก ณ ที่จ่าย:** {tot_div_wht:,.2f} บาท")
+
+# แท็บ 6-11: กรอกยอดรวมรายปี
+with tabs[5]:
+    st.markdown("##### 💼 เงินได้ 40(6) วิชาชีพอิสระ (หมอ, ทนายความ, บัญชี ฯลฯ)")
+    inc_6 = st.number_input("รวมรายได้ 40(6) ทั้งปี", min_value=0, value=0, step=10000)
+    wht_6 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(6)", min_value=0, value=0, step=1000)
+with tabs[6]:
+    st.markdown("##### 🏗️ เงินได้ 40(7) รับเหมา (ลงทุนสัมภาระ)")
+    inc_7 = st.number_input("รวมรายได้ 40(7) ทั้งปี", min_value=0, value=0, step=10000)
+    wht_7 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(7)", min_value=0, value=0, step=1000)
+with tabs[7]:
+    st.markdown("##### 🏢 เงินได้ 40(8) ธุรกิจอื่นๆ (พาณิชย์, เกษตร, ขายของออนไลน์ ฯลฯ)")
+    inc_8 = st.number_input("รวมรายได้ 40(8) ทั้งปี", min_value=0, value=0, step=10000)
+    wht_8 = st.number_input("ภาษีหัก ณ ที่จ่าย 40(8)", min_value=0, value=0, step=1000)
+with tabs[8]:
+    st.markdown("##### 📈 เงินได้จากการลงทุนอื่นๆ (ดอกเบี้ย, คริปโต ฯลฯ)")
+    inc_inv = st.number_input("รวมรายได้ลงทุนอื่นๆ ทั้งปี", min_value=0, value=0, step=5000)
+    wht_inv = st.number_input("ภาษีหัก ณ ที่จ่าย ลงทุนอื่นๆ", min_value=0, value=0, step=500)
+with tabs[9]:
+    st.markdown("##### 🏛️ รายได้จากมรดก / รับให้")
+    inc_inherit = st.number_input("ยอดเงินมรดกที่ได้รับ", min_value=0, value=0, step=50000)
+with tabs[10]:
+    st.markdown("##### 🛡️ เงินได้ที่ได้รับการยกเว้นภาษีอื่นๆ")
+    inc_exempt = st.number_input("ยอดเงินที่ได้รับการยกเว้น", min_value=0, value=0, step=10000)
 
 # ==========================================
 # 2. โซนกราฟ (Live Chart)
 # ==========================================
 st.header("2. กราฟสรุปรายได้รายเดือน")
+st.caption("*(กราฟแสดงผลเฉพาะรายได้รายเดือน 40(1), 40(2) และ 40(5) จากแท็บ 1-4)*")
 sal_arr, agt_arr, fa_arr, rent_arr = df_sal["รายได้"].values, df_agt["รายได้"].values, df_fa["รายได้"].values, df_rent["รายได้"].values
 total_monthly = sal_arr + agt_arr + fa_arr + rent_arr
 
@@ -111,18 +134,9 @@ with ded_tabs[1]:
         w_pension = st.number_input("ประกันชีวิตแบบบำนาญ", min_value=0, value=0, step=5000)
         st.markdown("**แยกวงเงิน**")
         w_tesg = st.number_input("กองทุน ThaiESG (Max 300k)", min_value=0, value=30000, step=5000)
-    
-    t2_sum = w_life + w_hlth + w_pension + w_pvd + w_rmf + w_tesg + w_soc
-    st.info(f"**ยอดลงทุนรวม (รอคำนวณเพดาน):** {t2_sum:,.0f} บาท")
 
-with ded_tabs[2]: 
-    w_home = st.number_input("ดอกเบี้ยบ้าน (Max 100k)", min_value=0, value=100000, step=5000)
-    st.info(f"**ดอกเบี้ยบ้าน:** {w_home:,.0f} บาท")
-
-with ded_tabs[3]: 
-    w_easy = st.number_input("Easy E-Receipt (Max 50k)", min_value=0, value=0, step=1000)
-    st.info(f"**ยอด E-Receipt:** {w_easy:,.0f} บาท")
-
+with ded_tabs[2]: w_home = st.number_input("ดอกเบี้ยบ้าน (Max 100k)", min_value=0, value=100000, step=5000)
+with ded_tabs[3]: w_easy = st.number_input("Easy E-Receipt (Max 50k)", min_value=0, value=0, step=1000)
 with ded_tabs[4]:
     c1, c2 = st.columns(2)
     with c1:
@@ -130,9 +144,6 @@ with ded_tabs[4]:
         w_don_gen = st.number_input("บริจาคทั่วไป", min_value=0, value=10000, step=1000)
     with c2:
         w_don_pol = st.number_input("บริจาคพรรคการเมือง (Max 10k)", min_value=0, value=0, step=500)
-    
-    t5_sum = w_don_edu + w_don_gen + w_don_pol
-    st.info(f"**ยอดบริจาค (รอคำนวณเพดาน):** {t5_sum:,.0f} บาท")
 
 # ==========================================
 # 4. ประมวลผลภาษี
@@ -149,7 +160,6 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     wht_1 = df_sal["หัก ณ ที่จ่าย"].sum()
     wht_2 = df_agt["หัก ณ ที่จ่าย"].sum() + df_fa["หัก ณ ที่จ่าย"].sum()
     wht_5 = df_rent["หัก ณ ที่จ่าย"].sum()
-    wht_base = wht_1 + wht_2 + wht_5
     
     tot_div_a = tot_div_c = tot_div_w = 0
     for _, row in df_div.iterrows():
@@ -161,37 +171,35 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         tot_div_a += (amt if pd.notna(amt) else 0)
         tot_div_w += (wht if pd.notna(wht) else 0)
     
-    total_income = inc_1 + inc_2 + inc_5 + tot_div_a + tot_div_c
+    # รวมฐานภาษี
+    total_income = inc_1 + inc_2 + inc_5 + inc_6 + inc_7 + inc_8 + inc_inv + tot_div_a + tot_div_c
+    wht_base = wht_1 + wht_2 + wht_5 + wht_6 + wht_7 + wht_8 + wht_inv
+    wht_total = wht_base + tot_div_w
     
     # คำนวณค่าใช้จ่าย
     exp_1_2 = min((inc_1 + inc_2) * 0.5, 100000)
-    exp_5 = inc_5 * 0.3
-    exp_total = exp_1_2 + exp_5
+    exp_5 = inc_5 * 0.30
+    exp_6 = inc_6 * 0.30
+    exp_7 = inc_7 * 0.60
+    exp_8 = inc_8 * 0.60
+    exp_total = exp_1_2 + exp_5 + exp_6 + exp_7 + exp_8
+    
     inc_after_exp = total_income - exp_total
 
     # Scenario A (ลงทุน)
     cap_life_hlth_A = min(w_life + min(w_hlth, 25000), 100000)
-    alw_pension_A = min(w_pension, total_income * 0.15, 200000)
-    alw_pvd_A = min(w_pvd, total_income * 0.15, 500000)
-    alw_rmf_A = min(w_rmf, total_income * 0.30, 500000)
-    cap_retire_A = min(alw_pension_A + alw_pvd_A + alw_rmf_A, 500000)
+    cap_retire_A = min(min(w_pension, total_income * 0.15, 200000) + min(w_pvd, total_income * 0.15, 500000) + min(w_rmf, total_income * 0.30, 500000), 500000)
     alw_tesg_A = min(w_tesg, total_income * 0.30, 300000)
     alw_soc_capped = min(w_soc, 9000)
-    alw_home_capped = min(w_home, 100000)
-    alw_easy_capped = min(w_easy, 50000)
-    alw_pol_capped = min(w_don_pol, 10000)
     
-    tot_allowance_A = t1 + alw_soc_capped + alw_home_capped + alw_easy_capped + cap_life_hlth_A + cap_retire_A + alw_tesg_A
-    net_pre_don_A = max(0, inc_after_exp - tot_allowance_A - alw_pol_capped)
-    
-    don_edu_calc = min(w_don_edu * 2, net_pre_don_A * 0.1)
-    don_gen_calc = min(w_don_gen, (net_pre_don_A - don_edu_calc) * 0.1)
-    don_A = don_edu_calc + don_gen_calc
+    tot_allowance_A = t1 + alw_soc_capped + min(w_home, 100000) + min(w_easy, 50000) + cap_life_hlth_A + cap_retire_A + alw_tesg_A
+    net_pre_don_A = max(0, inc_after_exp - tot_allowance_A - min(w_don_pol, 10000))
+    don_A = min(w_don_edu * 2, net_pre_don_A * 0.1) + min(w_don_gen, (net_pre_don_A - min(w_don_edu * 2, net_pre_don_A * 0.1)) * 0.1)
     net_inc_A = net_pre_don_A - don_A
 
     # Scenario B (ไม่ลงทุน)
-    tot_allowance_B = t1 + alw_soc_capped + alw_home_capped + alw_easy_capped + min(w_pvd, total_income * 0.15, 500000)
-    net_pre_don_B = max(0, inc_after_exp - tot_allowance_B - alw_pol_capped)
+    tot_allowance_B = t1 + alw_soc_capped + min(w_home, 100000) + min(w_easy, 50000) + min(w_pvd, total_income * 0.15, 500000)
+    net_pre_don_B = max(0, inc_after_exp - tot_allowance_B - min(w_don_pol, 10000))
     don_B = min(w_don_edu * 2, net_pre_don_B * 0.1) + min(w_don_gen, (net_pre_don_B - min(w_don_edu * 2, net_pre_don_B * 0.1)) * 0.1)
     net_inc_B = net_pre_don_B - don_B
 
@@ -209,7 +217,6 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         rem_A -= t_A; rem_B -= t_B; prev = lim
         if rem_A <= 0 and rem_B <= 0 and lim > net_inc_B: break
 
-    wht_total = wht_base + tot_div_w
     final_tax_A = tax_A - wht_total - tot_div_c
     eff_A = (tax_A / total_income * 100) if total_income > 0 else 0
     eff_B = (tax_B / total_income * 100) if total_income > 0 else 0
@@ -226,34 +233,39 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     
     with b_col1:
         st.markdown("#### 1️⃣ สรุปรายได้และค่าใช้จ่าย")
-        
-        # จัดตารางรายได้และค่าใช้จ่ายแบบ 2 คอลัมน์
         html_rows = []
         exp_1_2_shown = False
         
         if inc_1 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินเดือน 40(1):</b> {inc_1:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f} บาท</td></tr>")
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินเดือน 40(1):</b> {inc_1:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f}</td></tr>")
             exp_1_2_shown = True
-            
         if inc_2 > 0:
-            exp_text = f"หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f} บาท" if not exp_1_2_shown else ""
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าตอบแทน 40(2):</b> {inc_2:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>{exp_text}</td></tr>")
-            
+            exp_text = f"หักค่าใช้จ่าย 40(1)+(2): {exp_1_2:,.2f}" if not exp_1_2_shown else ""
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าตอบแทน 40(2):</b> {inc_2:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>{exp_text}</td></tr>")
         if inc_5 > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าเช่า 40(5):</b> {inc_5:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(5) (30%): {exp_5:,.2f} บาท</td></tr>")
-            
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ค่าเช่า 40(5):</b> {inc_5:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(5) (30%): {exp_5:,.2f}</td></tr>")
+        if inc_6 > 0:
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>วิชาชีพอิสระ 40(6):</b> {inc_6:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(6) (30%): {exp_6:,.2f}</td></tr>")
+        if inc_7 > 0:
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>รับเหมา 40(7):</b> {inc_7:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(7) (60%): {exp_7:,.2f}</td></tr>")
+        if inc_8 > 0:
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ธุรกิจ 40(8):</b> {inc_8:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee; color: #495057;'>หักค่าใช้จ่าย 40(8) (60%): {exp_8:,.2f}</td></tr>")
+        if inc_inv > 0:
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>ลงทุนอื่นๆ:</b> {inc_inv:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
         if tot_div_a > 0:
-            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินปันผล 40(4):</b> {tot_div_a:,.2f} บาท</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
+            html_rows.append(f"<tr><td style='padding: 6px 0; border-bottom: 1px solid #eee;'>- <b>เงินปันผล 40(4):</b> {tot_div_a:,.2f}</td><td style='padding: 6px 0; border-bottom: 1px solid #eee;'></td></tr>")
 
-        if html_rows:
-            st.markdown(f"<table style='width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px;'>{''.join(html_rows)}</table>", unsafe_allow_html=True)
-
+        if html_rows: st.markdown(f"<table style='width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px;'>{''.join(html_rows)}</table>", unsafe_allow_html=True)
         st.info(f"**รวมเงินได้พึงประเมิน:** {total_income:,.2f} บาท\n\n**รวมค่าใช้จ่ายที่หักได้:** {exp_total:,.2f} บาท")
         
         st.markdown("#### 4️⃣ ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล")
         if wht_1 > 0: st.write(f"- หัก ณ ที่จ่าย 40(1): {wht_1:,.2f} บาท")
         if wht_2 > 0: st.write(f"- หัก ณ ที่จ่าย 40(2): {wht_2:,.2f} บาท")
+        if wht_inv > 0: st.write(f"- หัก ณ ที่จ่าย ลงทุนอื่นๆ: {wht_inv:,.2f} บาท")
         if wht_5 > 0: st.write(f"- หัก ณ ที่จ่าย 40(5): {wht_5:,.2f} บาท")
+        if wht_6 > 0: st.write(f"- หัก ณ ที่จ่าย 40(6): {wht_6:,.2f} บาท")
+        if wht_7 > 0: st.write(f"- หัก ณ ที่จ่าย 40(7): {wht_7:,.2f} บาท")
+        if wht_8 > 0: st.write(f"- หัก ณ ที่จ่าย 40(8): {wht_8:,.2f} บาท")
         if tot_div_w > 0: st.write(f"- หัก ณ ที่จ่าย ปันผล: {tot_div_w:,.2f} บาท")
         if tot_div_c > 0: st.write(f"- เครดิตภาษีปันผล: {tot_div_c:,.2f} บาท")
         st.success(f"**รวมภาษีที่จ่ายล่วงหน้าแล้ว:** {wht_total + tot_div_c:,.2f} บาท")
@@ -265,17 +277,17 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         if cap_retire_A > 0: st.write(f"- กลุ่มเกษียณ (PVD+RMF+บำนาญ): {cap_retire_A:,.2f} บาท")
         if alw_tesg_A > 0: st.write(f"- ThaiESG: {alw_tesg_A:,.2f} บาท")
         if alw_soc_capped > 0: st.write(f"- ประกันสังคม: {alw_soc_capped:,.2f} บาท")
-        if alw_home_capped > 0: st.write(f"- ดอกเบี้ยบ้าน: {alw_home_capped:,.2f} บาท")
-        if alw_easy_capped > 0: st.write(f"- Easy E-Receipt: {alw_easy_capped:,.2f} บาท")
+        if min(w_home, 100000) > 0: st.write(f"- ดอกเบี้ยบ้าน: {min(w_home, 100000):,.2f} บาท")
+        if min(w_easy, 50000) > 0: st.write(f"- Easy E-Receipt: {min(w_easy, 50000):,.2f} บาท")
         st.info(f"**รวมค่าลดหย่อนทั้งหมด:** {tot_allowance_A:,.2f} บาท")
         
         st.markdown("#### 3️⃣ สรุปเงินบริจาค")
         if w_don_edu > 0: 
-            st.write(f"- บริจาคการศึกษา/รพ. (x2): {don_edu_calc:,.2f} บาท")
+            st.write(f"- บริจาคการศึกษา/รพ. (x2): {min(w_don_edu * 2, net_pre_don_A * 0.1):,.2f} บาท")
             st.caption(f"*(จ่ายจริง {w_don_edu:,.0f} บาท)*")
-        if w_don_gen > 0: st.write(f"- บริจาคทั่วไป: {don_gen_calc:,.2f} บาท")
-        if w_don_pol > 0: st.write(f"- บริจาคพรรคการเมือง: {alw_pol_capped:,.2f} บาท")
-        st.info(f"**รวมเงินบริจาคที่หักได้:** {don_A + alw_pol_capped:,.2f} บาท")
+        if w_don_gen > 0: st.write(f"- บริจาคทั่วไป: {min(w_don_gen, (net_pre_don_A - min(w_don_edu * 2, net_pre_don_A * 0.1)) * 0.1):,.2f} บาท")
+        if w_don_pol > 0: st.write(f"- บริจาคพรรคการเมือง: {min(w_don_pol, 10000):,.2f} บาท")
+        st.info(f"**รวมเงินบริจาคที่หักได้:** {don_A + min(w_don_pol, 10000):,.2f} บาท")
 
     # ==========================================
     # แสดงผลตารางสรุปสุดท้าย
@@ -288,7 +300,7 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{exp_total:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px; font-weight: bold;">= เงินได้หลังหักค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{inc_after_exp:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าลดหย่อน</td><td style="text-align: right; font-weight: bold;">{tot_allowance_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
-        <tr><td style="padding: 5px 10px 5px 60px;">- เงินบริจาค</td><td style="text-align: right; font-weight: bold;">{don_A + alw_pol_capped:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
+        <tr><td style="padding: 5px 10px 5px 60px;">- เงินบริจาค</td><td style="text-align: right; font-weight: bold;">{don_A + min(w_don_pol, 10000):,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr style="background-color: #cce5ff;"><td style="padding: 5px 10px 5px 60px; font-weight: bold;">= เงินได้สุทธิ</td><td style="text-align: right; font-weight: bold;">{net_inc_A:,.2f}</td><td style="padding-left: 10px; font-weight: bold;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">ภาษีที่ประเมิน</td><td style="text-align: right; font-weight: bold;">{tax_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล</td><td style="text-align: right; font-weight: bold;">{wht_total + tot_div_c:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
@@ -318,8 +330,4 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
             <td style="border: 1px solid #dee2e6; padding: 10px; color:#155724;">{eff_A:.2f}%</td><td style="border: 1px solid #dee2e6; padding: 10px; color:#721c24;">{eff_B:.2f}%</td>
         </tr>
     </table>
-    <div style="margin-top: 15px; padding: 15px; background-color: #fff3cd; border-left: 5px solid #ffc107; border-radius: 5px;">
-        <h5 style="margin: 0 0 5px 0; color: #856404;">💡 สรุปความคุ้มค่าของการลงทุน:</h5>
-        <span style="font-size: 15px; color: #212529;">การลงทุนใน RMF, ประกัน และ ThaiESG ช่วยให้คุณประหยัดภาษีไปได้ทั้งหมด <b><span style="color:#28a745;">฿{tax_B - tax_A:,.2f}</span></b></span>
-    </div>
     """, unsafe_allow_html=True)
