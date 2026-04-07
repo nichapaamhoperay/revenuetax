@@ -264,6 +264,8 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     # คิดภาษี
     tax_A = tax_B = prev = 0
     rem_A, rem_B = net_inc_A, net_inc_B
+    
+    # สร้างตาราง HTML แบบตัดปัญหาการเว้นบรรทัด
     bracket_html = ""
     for lim, rate in [(150000, 0), (300000, 0.05), (500000, 0.1), (750000, 0.15), (1000000, 0.2), (2000000, 0.25), (5000000, 0.3), (float('inf'), 0.35)]:
         t_A, t_B = max(0, min(rem_A, lim - prev)), max(0, min(rem_B, lim - prev))
@@ -271,7 +273,7 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         tax_A += tax_in_A; tax_B += tax_in_B
         if t_B > 0 or t_A > 0 or lim == 150000:
             lim_text = f"{lim:,.0f}" if lim != float('inf') else ""
-            bracket_html += f'<tr style="text-align: right;"><td style="border: 1px solid #dee2e6; padding: 5px;">{lim_text}</td><td style="border: 1px solid #dee2e6; padding: 5px;">{rate*100:.2f}%</td><td style="border: 1px solid #dee2e6; padding: 5px;">{t_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 5px;">{t_B:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 5px;">{tax_in_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 5px;">{tax_in_B:,.2f}</td></tr>'
+            bracket_html += f'<tr><td style="border: 1px solid #dee2e6; padding: 5px;">{lim_text}</td><td style="border: 1px solid #dee2e6; padding: 5px;">{rate*100:.2f}%</td><td style="border: 1px solid #dee2e6; padding: 5px; text-align: right;">{t_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 5px; text-align: right;">{t_B:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 5px; text-align: right;">{tax_in_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 5px; text-align: right;">{tax_in_B:,.2f}</td></tr>'
         rem_A -= t_A; rem_B -= t_B; prev = lim
         if rem_A <= 0 and rem_B <= 0 and lim > net_inc_B: break
 
@@ -358,15 +360,19 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     # ==========================================
     st.markdown("---")
     
-    exempt_row = f'<tr><td style="padding: 5px 10px 5px 60px;">- เงินได้ยกเว้น (65ปี/คนพิการ)</td><td style="text-align: right; font-weight: bold;">{self_exempt:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>' if self_exempt > 0 else ""
     net_after_exp_label = "= เงินได้หลังหักค่าใช้จ่ายและยกเว้น" if self_exempt > 0 else "= เงินได้หลังหักค่าใช้จ่าย"
     
-    st.markdown(f"""
+    # ต่อ String HTML แบบไร้รอยต่อ ป้องกัน Markdown Parser Error
+    summary_html = f"""
     <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 15px; margin-top: 10px; border: 1px solid #dee2e6;">
         <tr style="background-color: #f8f9fa; font-weight: bold;"><td colspan="3" style="padding: 10px;">ตารางสรุปภาษี</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">+ เงินได้พึงประเมิน</td><td style="text-align: right; width: 150px; font-weight: bold;">{total_income:,.2f}</td><td style="width: 50px; padding-left: 10px;">บาท</td></tr>
-        <tr><td style="padding: 5px 10px 5px 60px;">- ค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{exp_total:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
-        {exempt_row}
+        <tr><td style="padding: 5px 10px 5px 60px;">- ค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{exp_total:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>"""
+    
+    if self_exempt > 0:
+        summary_html += f'\n        <tr><td style="padding: 5px 10px 5px 60px;">- เงินได้ยกเว้น (65ปี/คนพิการ)</td><td style="text-align: right; font-weight: bold;">{self_exempt:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>'
+
+    summary_html += f"""
         <tr><td style="padding: 5px 10px 5px 60px; font-weight: bold;">{net_after_exp_label}</td><td style="text-align: right; font-weight: bold;">{inc_after_exp:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าลดหย่อน</td><td style="text-align: right; font-weight: bold;">{tot_allowance_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- เงินบริจาค</td><td style="text-align: right; font-weight: bold;">{don_A + min(w_don_pol, 10000):,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
@@ -378,29 +384,31 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     <br>
     <h3 style='color:#343a40;'>📊 เปรียบเทียบผลการประหยัดภาษี (Scenario Analysis)</h3>
     <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; border: 1px solid #dee2e6;">
-        <tr style="background-color: #e9ecef; text-align: center; font-weight: bold;">
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px;">ตารางอัตราภาษี</td>
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px;">เงินได้ในแต่ละขั้นภาษี</td>
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px;">ภาษีเงินได้</td>
+        <tr style="background-color: #e9ecef; font-weight: bold;">
+            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">ตารางอัตราภาษี</td>
+            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">เงินได้ในแต่ละขั้นภาษี</td>
+            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">ภาษีเงินได้</td>
         </tr>
-        <tr style="background-color: #f8f9fa; text-align: center; font-weight: bold;">
+        <tr style="background-color: #f8f9fa; font-weight: bold; text-align: center;">
             <td style="border: 1px solid #dee2e6; padding: 5px;">ขั้นเงินได้ (บาท)</td><td style="border: 1px solid #dee2e6; padding: 5px;">อัตรา</td>
             <td style="border: 1px solid #dee2e6; padding: 5px; color:#28a745;">มีการลงทุน</td><td style="border: 1px solid #dee2e6; padding: 5px; color:#dc3545;">ไม่มีการลงทุน</td>
             <td style="border: 1px solid #dee2e6; padding: 5px; color:#28a745;">มีการลงทุน</td><td style="border: 1px solid #dee2e6; padding: 5px; color:#dc3545;">ไม่มีการลงทุน</td>
         </tr>
         {bracket_html}
-        <tr style="background-color: #cce5ff; font-weight: bold; text-align: right;">
+        <tr style="background-color: #cce5ff; font-weight: bold;">
             <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">รวม</td>
-            <td style="border: 1px solid #dee2e6; padding: 10px;">{net_inc_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 10px;">{net_inc_B:,.2f}</td>
-            <td style="border: 1px solid #dee2e6; padding: 10px; color:#28a745;">{tax_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 10px; color:#dc3545;">{tax_B:,.2f}</td>
+            <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">{net_inc_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">{net_inc_B:,.2f}</td>
+            <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#28a745;">{tax_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#dc3545;">{tax_B:,.2f}</td>
         </tr>
-        <tr style="background-color: #d4edda; font-weight: bold; text-align: right;">
+        <tr style="background-color: #d4edda; font-weight: bold;">
             <td colspan="4" style="border: 1px solid #dee2e6; padding: 10px; text-align: left;">อัตราภาษีที่เสียที่แท้จริง (Effective Tax Rate)</td>
-            <td style="border: 1px solid #dee2e6; padding: 10px; color:#155724;">{eff_A:.2f}%</td><td style="border: 1px solid #dee2e6; padding: 10px; color:#721c24;">{eff_B:.2f}%</td>
+            <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#155724;">{eff_A:.2f}%</td><td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#721c24;">{eff_B:.2f}%</td>
         </tr>
     </table>
     <div style="margin-top: 15px; padding: 15px; background-color: #fff3cd; border-left: 5px solid #ffc107; border-radius: 5px;">
         <h5 style="margin: 0 0 5px 0; color: #856404;">💡 สรุปความคุ้มค่าของการลงทุน:</h5>
         <span style="font-size: 15px; color: #212529;">การลงทุนใน RMF, ประกัน และ ThaiESG ช่วยให้คุณประหยัดภาษีไปได้ทั้งหมด <b><span style="color:#28a745;">฿{tax_B - tax_A:,.2f}</span></b></span>
     </div>
-    """, unsafe_allow_html=True)
+    """
+    
+    st.markdown(summary_html, unsafe_allow_html=True)
