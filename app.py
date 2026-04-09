@@ -173,7 +173,6 @@ with ded_tabs[0]:
         else: alw_child = (max(0, w_child_total - w_child_after61) * 30000) + (w_child_after61 * 60000)
     t1 = 60000 + (60000 if w_spouse else 0) + alw_child + (min(w_parent, 4) * 30000) + min(w_parent_hlth, 15000) + (w_disable * 60000)
     
-    # คำนวณเงินได้ที่ได้รับยกเว้น (กรณี 65+ และคนพิการ)
     self_exempt = (190000 if w_is_65 else 0) + (190000 if w_is_disabled_self else 0)
     
     if self_exempt > 0:
@@ -228,12 +227,10 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         if pd.notna(rate) and pd.notna(amt) and 0 < rate < 100 and amt > 0:
             tot_div_c += amt * (rate / (100.0 - rate))
     
-    # รวมฐานภาษีพึงประเมิน 
     total_income = inc_1 + inc_2 + inc_5 + inc_6 + inc_7 + inc_8 + inc_inv + tot_div_amt + tot_div_c
     wht_base = wht_1 + wht_2 + wht_5 + wht_6 + wht_7 + wht_8 + wht_inv
     wht_total = wht_base + tot_div_wht
     
-    # คำนวณค่าใช้จ่าย
     exp_1_2 = min((inc_1 + inc_2) * 0.5, 100000)
     exp_5 = inc_5 * 0.30
     exp_6 = inc_6 * 0.30
@@ -241,7 +238,6 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     exp_8 = inc_8 * 0.60
     exp_total = exp_1_2 + exp_5 + exp_6 + exp_7 + exp_8
     
-    # หักเงินได้ที่ได้รับยกเว้น (กรณี 65+ และคนพิการ) ออกจากฐานรายได้พึงประเมิน
     inc_after_exp = max(0, total_income - exp_total - self_exempt)
 
     # Scenario A (ลงทุน)
@@ -261,11 +257,9 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     don_B = min(w_don_edu * 2, net_pre_don_B * 0.1) + min(w_don_gen, (net_pre_don_B - min(w_don_edu * 2, net_pre_don_B * 0.1)) * 0.1)
     net_inc_B = net_pre_don_B - don_B
 
-    # คิดภาษี
     tax_A = tax_B = prev = 0
     rem_A, rem_B = net_inc_A, net_inc_B
     
-    # สร้างตาราง HTML แบบตัดปัญหาการเว้นบรรทัด
     bracket_html = ""
     for lim, rate in [(150000, 0), (300000, 0.05), (500000, 0.1), (750000, 0.15), (1000000, 0.2), (2000000, 0.25), (5000000, 0.3), (float('inf'), 0.35)]:
         t_A, t_B = max(0, min(rem_A, lim - prev)), max(0, min(rem_B, lim - prev))
@@ -284,9 +278,7 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
     if final_tax_A < 0: final_class, final_label = "background-color: #155724; color: white;", "= มีภาษีที่ชำระไว้เกิน (ได้คืน)"
     else: final_class, final_label = "background-color: #8b0000; color: white;", "= มีภาษีที่ต้องชำระ"
 
-    # ==========================================
-    # แสดงผล Breakdown
-    # ==========================================
+    # แสดงผลบนหน้าจอแอปตามปกติ (Breakdown & สรุป)
     st.markdown("---")
     st.markdown("### 📋 สรุปรายละเอียดการคำนวณ (Breakdown)")
     b_col1, b_col2 = st.columns(2)
@@ -315,7 +307,6 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         if tot_div_amt > 0:
             html_rows.append(f"<tr><td style='padding: 4px 0; border: none;'>&#8226; <b>เงินปันผล 40(4):</b> {tot_div_amt:,.2f} บาท</td><td style='padding: 4px 0; border: none;'></td></tr>")
         
-        # เพิ่มบรรทัดยกเว้นเงินได้สำหรับผู้สูงอายุและคนพิการ
         if self_exempt > 0:
             html_rows.append(f"<tr><td style='padding: 4px 0; border: none; color: #0c5460;'>&#8226; <b>ยกเว้น (65ปี/คนพิการ):</b> {self_exempt:,.2f} บาท</td><td style='padding: 4px 0; border: none; color: #0c5460;'>หักออกจากฐานรายได้</td></tr>")
 
@@ -350,14 +341,10 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         st.markdown("#### 3️⃣ สรุปเงินบริจาค")
         if w_don_edu > 0: 
             st.write(f"- บริจาคการศึกษา/รพ. (x2): {min(w_don_edu * 2, net_pre_don_A * 0.1):,.2f} บาท")
-            st.caption(f"*(จ่ายจริง {w_don_edu:,.0f} บาท)*")
         if w_don_gen > 0: st.write(f"- บริจาคทั่วไป: {min(w_don_gen, (net_pre_don_A - min(w_don_edu * 2, net_pre_don_A * 0.1)) * 0.1):,.2f} บาท")
         if w_don_pol > 0: st.write(f"- บริจาคพรรคการเมือง: {min(w_don_pol, 10000):,.2f} บาท")
         st.info(f"**รวมเงินบริจาคที่หักได้:** {don_A + min(w_don_pol, 10000):,.2f} บาท")
 
-    # ==========================================
-    # แสดงผลตารางสรุปสุดท้าย
-    # ==========================================
     st.markdown("---")
     net_after_exp_label = "= เงินได้หลังหักค่าใช้จ่ายและยกเว้น" if self_exempt > 0 else "= เงินได้หลังหักค่าใช้จ่าย"
     
@@ -366,10 +353,8 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         <tr style="background-color: #f8f9fa; font-weight: bold;"><td colspan="3" style="padding: 10px;">ตารางสรุปภาษี</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">+ เงินได้พึงประเมิน</td><td style="text-align: right; width: 150px; font-weight: bold;">{total_income:,.2f}</td><td style="width: 50px; padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าใช้จ่าย</td><td style="text-align: right; font-weight: bold;">{exp_total:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>"""
-    
     if self_exempt > 0:
         summary_html += f'\n        <tr><td style="padding: 5px 10px 5px 60px;">- เงินได้ยกเว้น (65ปี/คนพิการ)</td><td style="text-align: right; font-weight: bold;">{self_exempt:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>'
-
     summary_html += f"""
         <tr><td style="padding: 5px 10px 5px 60px; font-weight: bold;">{net_after_exp_label}</td><td style="text-align: right; font-weight: bold;">{inc_after_exp:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr><td style="padding: 5px 10px 5px 60px;">- ค่าลดหย่อน</td><td style="text-align: right; font-weight: bold;">{tot_allowance_A:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
@@ -379,33 +364,114 @@ if st.button("🧮 ประมวลผลภาษี", type="primary", use_co
         <tr><td style="padding: 5px 10px 5px 60px;">- ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล</td><td style="text-align: right; font-weight: bold;">{wht_total + wht_inherit + tot_div_c:,.2f}</td><td style="padding-left: 10px;">บาท</td></tr>
         <tr style="{final_class}"><td style="padding: 10px 10px 10px 60px; font-weight: bold;">{final_label}</td><td style="text-align: right; font-weight: bold; font-size: 18px;">{abs(final_tax_A):,.2f}</td><td style="padding-left: 10px; font-weight: bold;">บาท</td></tr>
     </table>
-    <br>
-    <h3 style='color:#343a40;'>📊 เปรียบเทียบผลการประหยัดภาษี (Scenario Analysis)</h3>
-    <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; border: 1px solid #dee2e6;">
-        <tr style="background-color: #e9ecef; font-weight: bold;">
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">ตารางอัตราภาษี</td>
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">เงินได้ในแต่ละขั้นภาษี</td>
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">ภาษีเงินได้</td>
-        </tr>
-        <tr style="background-color: #f8f9fa; font-weight: bold; text-align: center;">
-            <td style="border: 1px solid #dee2e6; padding: 5px;">ขั้นเงินได้ (บาท)</td><td style="border: 1px solid #dee2e6; padding: 5px;">อัตรา</td>
-            <td style="border: 1px solid #dee2e6; padding: 5px; color:#28a745;">มีการลงทุน</td><td style="border: 1px solid #dee2e6; padding: 5px; color:#dc3545;">ไม่มีการลงทุน</td>
-            <td style="border: 1px solid #dee2e6; padding: 5px; color:#28a745;">มีการลงทุน</td><td style="border: 1px solid #dee2e6; padding: 5px; color:#dc3545;">ไม่มีการลงทุน</td>
-        </tr>
-        {bracket_html}
-        <tr style="background-color: #cce5ff; font-weight: bold;">
-            <td colspan="2" style="border: 1px solid #dee2e6; padding: 10px; text-align: center;">รวม</td>
-            <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">{net_inc_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">{net_inc_B:,.2f}</td>
-            <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#28a745;">{tax_A:,.2f}</td><td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#dc3545;">{tax_B:,.2f}</td>
-        </tr>
-        <tr style="background-color: #d4edda; font-weight: bold;">
-            <td colspan="4" style="border: 1px solid #dee2e6; padding: 10px; text-align: left;">อัตราภาษีที่เสียที่แท้จริง (Effective Tax Rate)</td>
-            <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#155724;">{eff_A:.2f}%</td><td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; color:#721c24;">{eff_B:.2f}%</td>
-        </tr>
-    </table>
-    <div style="margin-top: 15px; padding: 15px; background-color: #fff3cd; border-left: 5px solid #ffc107; border-radius: 5px;">
-        <h5 style="margin: 0 0 5px 0; color: #856404;">💡 สรุปความคุ้มค่าของการลงทุน:</h5>
-        <span style="font-size: 15px; color: #212529;">การลงทุนใน RMF, ประกัน และ ThaiESG ช่วยให้คุณประหยัดภาษีไปได้ทั้งหมด <b><span style="color:#28a745;">฿{tax_B - tax_A:,.2f}</span></b></span>
-    </div>
     """
     st.markdown(summary_html, unsafe_allow_html=True)
+
+    # ==========================================
+    # 5. สร้างปุ่มดาวน์โหลดรายงานแบบ Print (HTML)
+    # ==========================================
+    st.markdown("<br><hr>", unsafe_allow_html=True)
+    
+    # ดึงค่าสีและข้อความสำหรับส่วนสรุปท้าย
+    print_box_class = "red" if final_tax_A >= 0 else ""
+    print_h3_class = "text-danger" if final_tax_A >= 0 else "text-success"
+    print_label = final_label.replace('=', '')
+    
+    # สร้างโครงสร้างหน้ากระดาษ A4 สำหรับ Print
+    report_html = f"""
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <title>สรุปข้อมูลแบบแสดงรายการภาษี</title>
+        <style>
+            body {{ font-family: 'Sarabun', Tahoma, sans-serif; color: #212529; line-height: 1.5; padding: 30px; max-width: 900px; margin: auto; }}
+            h2 {{ text-align: center; color: #0056b3; margin-bottom: 5px; }}
+            h4 {{ text-align: center; color: #6c757d; margin-top: 0; margin-bottom: 25px; }}
+            .section-title {{ border-bottom: 2px solid #0056b3; color: #0056b3; padding-bottom: 5px; margin-top: 30px; font-size: 18px; font-weight: bold; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }}
+            th, td {{ border: 1px solid #dee2e6; padding: 10px 15px; }}
+            th {{ background-color: #f8f9fa; text-align: left; }}
+            .right {{ text-align: right; }}
+            .bold {{ font-weight: bold; }}
+            .highlight-row {{ background-color: #e9ecef; font-weight: bold; }}
+            .summary-box {{ border: 2px solid #28a745; background-color: #d4edda; padding: 25px; text-align: center; margin-top: 40px; border-radius: 8px; }}
+            .summary-box.red {{ border-color: #dc3545; background-color: #f8d7da; }}
+            .text-success {{ color: #155724; }}
+            .text-danger {{ color: #721c24; }}
+            @media print {{
+                body {{ padding: 0; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <h2>📊 รายงานสรุปการวางแผนภาษี (Smart Tax Planner Pro)</h2>
+        <h4>รายละเอียดข้อมูลเงินได้ สิทธิลดหย่อน และผลการประเมิน</h4>
+
+        <div class="section-title">1. สรุปข้อมูลรายได้และภาษีหัก ณ ที่จ่าย (Income)</div>
+        <table>
+            <tr><th>ประเภทเงินได้</th><th class="right">จำนวนเงิน (บาท)</th><th class="right">หัก ณ ที่จ่าย (บาท)</th></tr>
+            <tr><td>40(1) เงินเดือนโบนัส (ทั้งปี)</td><td class="right">{inc_1:,.2f}</td><td class="right">{wht_1:,.2f}</td></tr>
+            <tr><td>40(2) ค่าคอมมิชชัน / ค่าตอบแทน FA</td><td class="right">{inc_2:,.2f}</td><td class="right">{wht_2:,.2f}</td></tr>
+            <tr><td>40(4) เงินปันผล (ก่อนคำนวณเครดิตภาษี)</td><td class="right">{tot_div_amt:,.2f}</td><td class="right">{tot_div_wht:,.2f}</td></tr>
+            <tr><td>40(5) ค่าเช่าบ้าน</td><td class="right">{inc_5:,.2f}</td><td class="right">{wht_5:,.2f}</td></tr>
+            <tr><td>40(6) วิชาชีพอิสระ</td><td class="right">{inc_6:,.2f}</td><td class="right">{wht_6:,.2f}</td></tr>
+            <tr><td>40(7) รับเหมา</td><td class="right">{inc_7:,.2f}</td><td class="right">{wht_7:,.2f}</td></tr>
+            <tr><td>40(8) ธุรกิจอื่นๆ</td><td class="right">{inc_8:,.2f}</td><td class="right">{wht_8:,.2f}</td></tr>
+            <tr><td>เงินได้จากการลงทุนอื่นๆ</td><td class="right">{inc_inv:,.2f}</td><td class="right">{wht_inv:,.2f}</td></tr>
+            <tr><td>มรดก / รับให้</td><td class="right">{inc_inherit:,.2f}</td><td class="right">{wht_inherit:,.2f}</td></tr>
+            <tr class="highlight-row"><td>รวมรายได้ที่นำมาประเมินภาษี</td><td class="right">{total_income:,.2f}</td><td class="right">{wht_total + wht_inherit:,.2f}</td></tr>
+        </table>
+        <p style="font-size: 14px; margin-top: 10px; color: #495057;">
+            <i>*เครดิตภาษีเงินปันผลที่ได้รับเพิ่ม: <b>{tot_div_c:,.2f}</b> บาท</i><br>
+            <i>*เงินได้ที่ได้รับยกเว้นภาษี (เช่น PVDส่วนเกิน, กบข, ชดเชย): <b>{inc_exempt:,.2f}</b> บาท</i>
+        </p>
+
+        <div class="section-title">2. สรุปข้อมูลสิทธิลดหย่อนที่กรอก (Deductions)</div>
+        <table>
+            <tr><th>หมวดหมู่ลดหย่อน</th><th class="right">มูลค่าสิทธิที่ใช้ได้ (บาท)</th></tr>
+            <tr><td>หมวดครอบครัวและส่วนตัว (รวมสิทธิยกเว้นผู้สูงอายุ/คนพิการ {self_exempt:,.0f} บ.)</td><td class="right">{(t1 + self_exempt):,.2f}</td></tr>
+            <tr><td>หมวดประกันชีวิตและสุขภาพ</td><td class="right">{cap_life_hlth_A:,.2f}</td></tr>
+            <tr><td>หมวดเกษียณ (PVD, RMF, บำนาญ)</td><td class="right">{cap_retire_A:,.2f}</td></tr>
+            <tr><td>กองทุน ThaiESG</td><td class="right">{alw_tesg_A:,.2f}</td></tr>
+            <tr><td>ประกันสังคม</td><td class="right">{alw_soc_capped:,.2f}</td></tr>
+            <tr><td>ดอกเบี้ยกู้ยืมเพื่อที่อยู่อาศัย</td><td class="right">{min(w_home, 100000):,.2f}</td></tr>
+            <tr><td>โครงการ Easy E-Receipt</td><td class="right">{min(w_easy, 50000):,.2f}</td></tr>
+            <tr><td>หมวดเงินบริจาค (การศึกษา/ทั่วไป/การเมือง)</td><td class="right">{(don_A + min(w_don_pol, 10000)):,.2f}</td></tr>
+            <tr class="highlight-row"><td>รวมมูลค่าลดหย่อนและบริจาคทั้งหมด (ที่นำไปหักภาษีได้)</td><td class="right">{(tot_allowance_A + don_A + min(w_don_pol, 10000) + self_exempt):,.2f}</td></tr>
+        </table>
+
+        <div class="section-title">3. สรุปผลการคำนวณภาษี (Tax Calculation)</div>
+        <table>
+            <tr><td>เงินได้พึงประเมินรวม</td><td class="right bold">{total_income:,.2f}</td></tr>
+            <tr><td>หัก ค่าใช้จ่าย (คำนวณอัตโนมัติจากประเภทรายได้)</td><td class="right">- {exp_total:,.2f}</td></tr>
+            <tr><td>หัก สิทธิยกเว้นรายได้ (65ปี / คนพิการ)</td><td class="right">- {self_exempt:,.2f}</td></tr>
+            <tr><td>หัก รวมค่าลดหย่อน</td><td class="right">- {tot_allowance_A:,.2f}</td></tr>
+            <tr><td>หัก รวมเงินบริจาค</td><td class="right">- {(don_A + min(w_don_pol, 10000)):,.2f}</td></tr>
+            <tr class="highlight-row"><td>เงินได้สุทธิ (เพื่อนำไปคำนวณภาษีตามขั้นบันได)</td><td class="right">{net_inc_A:,.2f}</td></tr>
+            <tr><td>ภาษีที่คำนวณได้ตามอัตราขั้นบันได</td><td class="right">{tax_A:,.2f}</td></tr>
+            <tr><td>หัก ภาษีหัก ณ ที่จ่าย และ เครดิตปันผล (ชำระล่วงหน้าแล้ว)</td><td class="right">- {(wht_total + wht_inherit + tot_div_c):,.2f}</td></tr>
+        </table>
+
+        <div class="summary-box {print_box_class}">
+            <h3 class="{print_h3_class}" style="margin:0; border:none; padding:0;">{print_label}</h3>
+            <h1 class="{print_h3_class}" style="margin: 10px 0 0 0; font-size: 38px;">{abs(final_tax_A):,.2f} บาท</h1>
+        </div>
+        
+        <script>
+            // สคริปต์นี้จะเด้งหน้าต่าง Print อัตโนมัติเมื่อไฟล์ถูกเปิด
+            window.onload = function() {{ window.print(); }}
+        </script>
+    </body>
+    </html>
+    """
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.download_button(
+            label="🖨️ ดาวน์โหลดรายงานเพื่อสั่งพิมพ์ (Print Report)",
+            data=report_html.encode('utf-8'),
+            file_name="Smart_Tax_Report.html",
+            mime="text/html",
+            use_container_width=True
+        )
